@@ -1,0 +1,221 @@
+* { transition: all 2s; }
+
+html {
+	height:100%;
+}
+
+/* flex-container */
+body {
+	background-color:#F2F2F2;
+	color: #222;
+	font-family: 'Open Sans', arial, sans-serif;
+	font-weight: 300;
+	-webkit-font-smoothing: antialiased;
+	background: -webkit-gradient(radial, center center, 500, center center, 1400, from(rgba(0,0,0,0)), to(rgba(0,0,0,0.6))) #fff;
+	/*background: -moz-radial-gradient(farthest-side, rgba(0,0,0,0) 90%, rgba(0,0,0,0.2) 150%) #F2F2F2;*/
+	background: -webkit-radial-gradient(farthest-side, rgba(0,0,0,0) 90%, rgba(0,0,0,0.2) 150%) #F2F2F2;
+	/*background: -ms-radial-gradient(farthest-side, rgba(0,0,0,0) 90%, rgba(0,0,0,0.2) 150%) #F2F2F2;
+	background: -o-radial-gradient(farthest-side, rgba(0,0,0,0) 90%, rgba(0,0,0,0.2) 150%) #F2F2F2;
+	background: radial-gradient(farthest-side, rgba(0,0,0,0) 90%, rgba(0,0,0,0.2) 150%) #F2F2F2;*/
+	box-sizing: border-box;
+	height:100%;
+	display: -webkit-flex;
+	display: flex;
+	-webkit-flex-flow:row;
+	overflow:hidden;
+}
+
+header{
+	padding: 0;
+	height:auto;
+	width:100%;
+	background-color:black;
+    background-image:none;
+    display:none;
+}
+
+header a{
+    color:white;
+    text-shadow: none;
+    text-decoration:none;
+}
+
+h1{
+	margin:15px;
+	font-size: 16px;
+}
+
+
+
+/* flex-items */
+
+body>div{
+	display: -webkit-flex;
+	-webkit-flex-flow: row;
+	-webkit-flex:1;
+}
+
+nav{	
+	-webkit-flex: 1;
+	display: -webkit-flex;
+	-webkit-order:2;
+	overflow-y:auto;
+	overflow-x:hidden;
+	-webkit-flex-flow:column;
+	-webkit-align-items:center;
+}
+
+figure{
+	margin:10px;
+	cursor:pointer;
+}
+	figure img{
+		-webkit-filter: grayscale(100%);
+		background-color:white;
+		width:100px;
+		height:80px;
+		padding:3px;
+		box-shadow: 0 0 20px rgba(0, 0, 0, 0.4), 0 0 2px black;
+	}
+	figure img:hover{
+		-webkit-filter:none;
+	}
+	figure img:active{
+		-webkit-filter:none;
+	}
+	.selected img{
+		-webkit-filter:none;
+	}
+
+section{
+	-webkit-order:1;
+	-webkit-flex: 3;
+	background-color:white;
+	box-shadow: 0 0 60px rgba(0, 0, 0, 0.3), 0 0 40px rgba(0, 0, 0, 0.1) inset, 0 0 15px #CCC;
+}
+
+aside{
+	-webkit-order:0;
+	-webkit-flex: 1;
+	margin:10px;
+}
+	aside span{
+		display:block;
+	}
+
+/* Styling webkit components */
+/* Scrollbar */
+body ::-webkit-scrollbar {
+	height: 20px;
+	overflow: visible;
+	width: 20px;
+}
+::-webkit-scrollbar-thumb {
+	background-color: rgba(0, 0, 0, .1);
+	background-clip: padding-box;
+	border: solid transparent;
+	min-height: 28px;
+	padding: 100px 0 0;
+	border-width: 6px 6px 6px 6px;
+}
+::-webkit-scrollbar-thumb:hover {
+	background-color: rgba(0, 0, 0, 0.5);
+}
+::-webkit-scrollbar-button {
+	height: 0;
+	width: 0;
+}
+::-webkit-scrollbar-track {
+	background-clip: padding-box;
+	border: solid transparent;
+	border-width: 0 0 0 4px;
+}
+::-webkit-scrollbar-corner {
+	background: transparent;
+}
+
+/* Fileupload button and form */
+form{
+	height:119px;
+	overflow:hidden;
+	display:-webkit-inline-flex;
+	padding:10px 10px 0px 10px;
+}
+
+.fubutton {
+	width: 106px;
+	-webkit-flex:1;
+}
+.fubutton::-webkit-file-upload-button {
+	visibility: hidden;
+}
+.fubutton:before {
+	content: 'Select files';
+	display: inline-block;
+	/*background: -webkit-linear-gradient(top, #F9F9F9, #E3E3E3);*/
+	background: transparent;
+	border: 1px dashed #888;
+	padding: 33px 14px;
+	outline: none;
+	white-space: nowrap;
+	-webkit-user-select: none;
+	cursor: pointer;
+	text-shadow: 1px 1px #fff;
+	font-weight: 300;
+	color: #888;
+}
+.fubutton:hover:before {
+	border-color: black;
+	color:black;
+}
+.fubutton:active:before {
+	/*background: -webkit-linear-gradient(top, #E3E3E3, #F9F9F9);*/
+	border: 1px solid #888;
+}
+
+/* SFX */
+/* credit http://lea.verou.me/2012/04/background-attachment-local/ */
+.scrollbox {
+	overflow: auto;
+
+	background:
+		/* Shadow covers */
+		linear-gradient(white 30%, rgba(255,255,255,0)),
+		linear-gradient(rgba(255,255,255,0), white 70%) 0 100%,
+		
+		/* Shadows */
+		radial-gradient(50% 0, farthest-side, rgba(0,0,0,.2), rgba(0,0,0,0)),
+		radial-gradient(50% 100%,farthest-side, rgba(0,0,0,.2), rgba(0,0,0,0)) 0 100%;
+	background-repeat: no-repeat;
+	background-size: 100% 40px, 100% 40px, 100% 14px, 100% 14px;
+	
+	/* Opera doesn't support this in the shorthand */
+	background-attachment: local, local, scroll, scroll;
+}
+
+
+@media all and (max-width: 400px) {
+	body>div{
+		-webkit-flex-flow: column;
+		-webkit-flex:1;
+	}
+	.body>div>* {
+        -webkit-flex: 100%;
+    }
+    nav{
+    	-webkit-flex-flow:row;
+    	overflow-x:auto;
+    	-webkit-order:0;
+    }
+    aside{
+    	-webkit-order:0;
+    }
+    section{
+    	-webkit-order:0;
+    }
+    /*
+    figure{
+    	-webkit-flex:1;
+    }
+    */
+}

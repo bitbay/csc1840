@@ -1,0 +1,48 @@
+<!DOCTYPE HTML>
+<html>
+    <head>
+        <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+   		<meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+		<title>CloudSpokes Challenge 1840</title>
+		<meta name="description" content="Cloudspokes Challenge 1840">
+		<meta name="viewport" content="width=device-width">
+		<!-- STYLESHEETS -->
+		<link rel="stylesheet" href="stylesheets/normalize.css">
+		<!--link rel="stylesheet" href="libs/bootstrap/css/bootstrap.min.css"-->
+		<link rel="stylesheet" href="stylesheets/main.css">
+		<!-- Looking for javascripts? See bottom... -->
+    </head>
+    <!--
+			Bleeding edge
+			...no boilerplate, no cross-browser support this time, just
+			plain future(chrome) awesomeness...
+	-->
+    <body>
+    	<header>
+			<h1>
+				<a class="brand" href="http://www.cloudspokes.com/challenges/1840/">CloudSpokes Challenge - 1840</a>
+			</h1>
+    	</header>
+    	<div>
+			<nav>
+				<% for(var i=0; i<data.images.length; i++) {%>
+					<figure>
+						<img src="<%= data.images[i].url %>" alt="">
+  						<figcaption><%= data.images[i].title %></figcaption>
+					</figure>
+				<% } %>
+				<form method="post" enctype="multipart/form-data">
+					<input type="file" name="image" class="fubutton" onchange="handleFiles(this.files)"/>
+				</form>
+			</nav>
+			<section>
+			</section>
+			<aside>
+				<span>Welcome.</span>
+			</aside>
+		</div>
+		<!-- SCRIPTS -->
+		<script>var channel='<%= data.channel %>';</script>
+		<script src="scripts/app.js"></script>
+    </body>
+</html>

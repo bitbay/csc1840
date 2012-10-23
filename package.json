@@ -1,0 +1,23 @@
+{
+	"name": "csc-1840",
+	"version": "0.0.2",
+	"author": "<daniel@bitbay.org>",
+	"description": "CloudSpokes Challange #1840",
+	"private": true,
+	"scripts": {
+		"start": "node web"
+	},
+	"dependencies": {
+		"opencv-node": "latest",
+		"walk": "latest",
+		"express": "latest",
+		"mongojs": "*",
+		"q": "0.8.8",
+		"ejs": "*",
+		"crypto": "*"
+	},
+	"engines": {
+		"node": "0.8.11",
+		"npm": "1.1.49"
+	}
+}
