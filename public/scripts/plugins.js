@@ -30,13 +30,14 @@ var ServerApi = (function() {
 	};
 	
 	/**
-	 * Queries the images associated with this session (default, uploaded)
+	 * HandleFilesUpload
 	 *
+	 * Takes care of the file-upload requests
 	 */
-	function getImages(callBack){
-		
-	};
-	
+	 function handleFilesUpload( files ){
+	 	
+	 }
+	 
 	/**
 	 * Finishes the authorization process, confirming that user has finished 
 	 * connecting to the channel.
@@ -51,9 +52,8 @@ var ServerApi = (function() {
 	/* Public methods exposed for Server API */
 	return {
 		errors: serverApi.errors,
-		getImages: getImages,
 		handshake: handshake,
-		
+		handleFiles: handleFilesUpload
 	};
 })();
 

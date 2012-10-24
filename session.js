@@ -20,7 +20,6 @@ var db = require('mongojs').connect(databaseUri, collections),
 	crypto = require('crypto'),
 	q = require('q'),
 	pusher = require('./pusher.js'),
-	async = require('async'),
 	sys = require('sys');
 
 /**
@@ -159,7 +158,7 @@ var queryImages = function (channelId) {
 			var visitor = visitors[0];
 			
 			// Return the images...
-			var images = [{ url: 'public/data/upload/woman.jpg',
+			var images = [{ url: '../public/data/upload/woman.jpg',
 				 			title: 'Sample'}];
 			var i=0;
 			for(i; i<visitor.images; ++i){

@@ -33,10 +33,9 @@ sys.puts(path.join(__dirname, '/public'));
 app.set('port', port);
 app.set('view engine', 'ejs');
 app.set('views', __dirname + '/views');
-app.set('uploads', __dirname + '/public/data/upload');
+//app.set('uploads', __dirname + '/public/data/upload');
 app.set('view cache', false);
 //app.set('source', __dirname + '/source');
-
 
 /* MiddleWare stack */
 
@@ -64,6 +63,7 @@ app.configure(function(){
 		
 		next();
 	});
+	app.use('/public', express.static(__dirname + '/public'));
 	app.use(express.static(path.join(__dirname, '/public')));
 	app.use(app.router);
 	app.use(function(err, req, res, next){
@@ -90,7 +90,7 @@ app.configure('production', function(){
 app.get('/', sessionManager.preroute, routes.index);
 
 // Swallow the rest of requests at the end
-app.get('*', routes.index);
+//app.get('*', routes.index);
 
 
 /* Pusher messages */

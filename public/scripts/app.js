@@ -27,7 +27,7 @@ var CSC1840 = ( function() {
 	 * @param {array} the images associated with the session
 	 */
 	function appendImages(images){
-		// the navigation bar element
+		// the navigation and form element
 		var nav = document.querySelector('nav');
 		
 		var i = 0;
