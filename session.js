@@ -94,6 +94,7 @@ exports.auth = function (req, res) {
 			// greet the user
 			// this could be setup in the Webhooks of pusher
 			// plugin admin page at heroku dashboard...
+			console.log('sending greet');
 			pusher.trigger(req.body.channel_name, 'greet', {msg:'Welcome!'});
 			
 		} else if (visitors.length === 0) {
