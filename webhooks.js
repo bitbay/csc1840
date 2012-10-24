@@ -10,13 +10,16 @@ exports.hook = function(req, res){
 	var webhook_signature = req.get('X-Pusher-Signature');	
 
 	var hmac = crypto.createHmac("sha256", app_secret);
-	
+	var bodyData = '';
 	// wait till all the data arrives...
     req.on("data", function(data) {
-        hmac.update(data);
+        //hmac.update(data);
+        bodyData += data;
+        console.log('recieving data...');
     });
 
     req.on("end", function() {
+    	hmac.update(bodyData);
         var crypted = hmac.digest("hex");
 
         if(crypted === webhook_signature) {
