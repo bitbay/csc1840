@@ -18,6 +18,7 @@ var	express = require('express'),
 	routes = require('./routes'),
 	sessionManager = require('./session.js'),
 	pusher = require('./pusher.js'),
+	pusher_server = require('./pusher_server.js'),
 	webhooks = require('./webhooks.js'),
 	sys = require('sys');
 
@@ -91,5 +92,6 @@ app.post('/webhooks', webhooks.hook);
 /* Startup application */
 if (!module.parent) {
 	app.listen(app.get('port'));
+	pusher_server.connect();
 	console.log('Express started on port '+ app.get('port'));
 }
