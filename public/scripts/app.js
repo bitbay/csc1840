@@ -19,8 +19,31 @@ var CSC1840 = ( function() {
 		NO_SUPPORT : 'The ... APIs are not fully supported in this browser.'
 	};
 	
-	function imagesRecieved(images){
-		console.log('images recieved: ' + images.length);
+	/**
+	 * appendImages
+	 *
+	 * Appends the recieved images to the nav element
+	 *
+	 * @param {array} the images associated with the session
+	 */
+	function appendImages(images){
+		// the navigation bar element
+		var nav = document.querySelector('nav');
+		
+		var i = 0;
+		for(i; i<images.length; ++i){
+			var fig = document.createElement('figure');
+			var img = document.createElement('img');
+			img.src = images[i].url;
+			img.alt = images[i].title;
+			
+			var figCap = document.createElement('figcaption');
+			var text = document.createTextNode(images[i].title);
+			figCap.appendChild(text);
+			fig.appendChild(img);
+			fig.appendChild(figCap);
+			nav.appendChild(fig);
+		}
 	}
 	
 	/* PRIVATE METHODS */
@@ -58,7 +81,8 @@ var CSC1840 = ( function() {
 	};
 	/* Expose public methods and variables */
 	return {
-		run: run
+		run: run,
+		appendImages: appendImages
 	};
 }());
 

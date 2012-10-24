@@ -34,22 +34,12 @@ app.set('port', port);
 app.set('view engine', 'ejs');
 app.set('views', __dirname + '/views');
 app.set('uploads', __dirname + '/public/data/upload');
+app.set('view cache', false);
 //app.set('source', __dirname + '/source');
 
 
 /* MiddleWare stack */
-var bodyparse = function( req, res, next){
-	req.on('data', function(chunk){
-		req.body += chunk;
-	});
-	req.on('end', function(){
-		console.log(req.body);
-		next();
-	});
-	req.on("error", function(err) {
-        return next(err);
-    });
-};
+
 app.configure(function(){
 	app.use(express.logger('dev'));
 	app.use(express.bodyParser({
@@ -64,6 +54,16 @@ app.configure(function(){
 					httpOnly: true,
 					expires: false }
 	}));
+	/* No Cache Middleware for the API */
+	app.use(function (req, res, next) {
+		if (req.url === '/') {
+			res.header("Cache-Control", "no-cache, no-store, must-revalidate");
+			res.header("Pragma", "no-cache");
+			res.header("Expires", 0);
+		}
+		
+		next();
+	});
 	app.use(express.static(path.join(__dirname, '/public')));
 	app.use(app.router);
 	app.use(function(err, req, res, next){
@@ -95,16 +95,14 @@ app.get('*', routes.index);
 
 /* Pusher messages */
 
-// authorize channel
+// authorize endpoint
 app.post('/auth', sessionManager.auth);
+app.post('/handshake', sessionManager.handshake);
 
-// webhooks callback
-// ADD:ON webhooks currently are REALLY buggy with herokus 30sec request timeout
-app.post('/webhooks', webhooks.hook);
 
 /* Startup application */
 if (!module.parent) {
 	app.listen(app.get('port'));
-	pusher_server.connect();
+	//pusher_server.connect();
 	console.log('Express started on port '+ app.get('port'));
 }

@@ -20,6 +20,7 @@ var db = require('mongojs').connect(databaseUri, collections),
 	crypto = require('crypto'),
 	q = require('q'),
 	pusher = require('./pusher.js'),
+	async = require('async'),
 	sys = require('sys');
 
 /**
@@ -39,32 +40,46 @@ var db = require('mongojs').connect(databaseUri, collections),
 exports.preroute = function(req, res, next){
 	if(typeof req.session.channelId == 'undefined')
 	{
-		sys.puts('has no session: ' + req.session.id);
-		// create a mongodb entry for the session and get the _id
-		// this _id will allow to subscribe a user to his own channel
-		var dbresult = storeSessionId(req.session.id);
-		sys.puts('result:' + dbresult);
-		switch(dbresult.status){
-			case 200:
-				// OK
-				req.session.channelId = dbresult.channelId;
-				break;
-			case 410:
-				// already has registered/valid session entry
-				break;
-			default:
-				// something went wrong
-				// retry...continous fails result in redirection circle!
-				res.status(err);
-				if(err === 307) res.setHeader('Location', '/');
-				return next(new Error('Session registering failed.'));
-				break;
-		}
+		// check if was page refresh
+		var find = q.defer();
+		db.visitors.find({
+			sessionId : req.session.id
+		}, find.makeNodeResolver());
 		
+		find.promise.then(function(visitors) {
+			if (visitors.length === 0) {
+				// not page refresh, does not have a session/channel
+				// generate a random channel
+				var channelId = getRandomId();
+				
+				// save in the db
+				var save = q.defer();
+				db.visitors.save({ sessionId: req.session.id,
+					channel: channelId }, save.makeNodeResolver());
+
+				save.promise.then(function(saved) {
+					// new session registered...
+					req.session.channelId = channelId;
+					next();
+				}, function(err) {
+					// DB error...
+					// status code 503 : Service Unavailable
+					res.status(503).end("FAILED TO SAVE SESSION");
+				});
+			} else {
+				// user already has a session
+				req.session.channelId = visitor.channelId;
+			}
+		}, function(err) {
+			// DB error...no grace at all!
+			// status code 503 : Service Unavailable
+			res.status(503).end("FAILED TO FETCH USER DB");
+		});	
 	}else{
 		sys.puts('already has session: ' + req.session.id);
+		console.log('calling next');
+		next();
 	}
-	next();
 }
 
 /**
@@ -81,8 +96,6 @@ exports.auth = function (req, res) {
 	db.visitors.find({
 		channel : channel
 	}, find.makeNodeResolver());
-
-	var result;
 
 	// resolved promise
 	find.promise.then(function(visitors) {
@@ -108,6 +121,23 @@ exports.auth = function (req, res) {
 	});
 };
 
+/**
+ * handshake
+ *
+ * last confirmation before actual data transfer begins
+ */
+exports.handshake = function (req, res){
+	var visitor = req.get('X-Visitor');
+	if( req.session.channelId === visitor ){
+		// greet the user
+		var channel = 'private-'+visitor;
+		pusher.trigger( channel, 'greet', {msg:'Welcome!'});
+		res.status(200).send('Hello');
+		queryImages(req.session.channelId );
+	}else{
+		res.send(401,'Who are You stranger?').end();
+	}
+};
 
 /**
  * queryImages
@@ -117,30 +147,37 @@ exports.auth = function (req, res) {
  * @param {string} the id of the ongoing session
  * @return {object} the result of the query
  */
-exports.queryImages = function (sessionId) {
+var queryImages = function (channelId) {
 	// check if we have already a session with this id...(probably not)
 	var find = q.defer();
 	db.visitors.find({
-		sessionId : sessionId
-	}, function(err, visitors) {
-		if (err){
-			// DB error...
-			// status code 503 : Service Unavailable
-			return 503;
-		}
+		channel : channelId
+	},find.makeNodeResolver());
+	
+	find.promise.then(function(visitors) {
 		if (visitors.length === 1) {
-			sys.puts(JSON.stringify(visitor));
+			var visitor = visitors[0];
+			
 			// Return the images...
-			return [];
+			var images = [{ url: 'public/data/upload/woman.jpg',
+				 			title: 'Sample'}];
+			var i=0;
+			for(i; i<visitor.images; ++i){
+				images.push({ url: visitor.images[i],
+				 			  title: ('User-'+i)});
+			}
+			pusher.trigger( 'private-'+channelId, 'send-uploaded-images',
+							{ data: images, msg: 'Images recovered' });
 		} else {
-			// session already exists...
-			// status code 410 : Gone
-			return 410;
+			// something got badly messed up!
+			// DB error...
+			// status code 500 : Internal error
+			pusher.trigger( 'private-'+channelId, 'server-error', {status:500});
 		}
 	}, function(err) {
 		// DB error...
 		// status code 503 : Service Unavailable
-		return 503;
+		pusher.trigger( 'private-'+channelId, 'server-error', {status:500});
 	});
 };
 
@@ -161,57 +198,3 @@ function getRandomId(){
 	}
 	return buf;
 };
-
-/**
- * storeSessionId
- *
- * Stores the generated id in the database, needed to access services of the
- * application
- * assert (session_save_done)
- *
- * @param {string}	the req.session.id
- * @param {function} callback on finish
- * @return {number} http response code 
- */
-function storeSessionId(sessionId) {
-	var result = {
-		status: 0,
-		channelId: undefined
-	};
-	// check if we have already a session with this id...(probably not)
-	db.visitors.find({ sessionId : sessionId }, function(err, visitors) {
-		// DB error...
-		// status code 503 : Service Unavailable
-		if (err) {
-			result.status = 503;
-			return result;
-		}
-		
-		// session already exists...
-		// status code 410 : Gone
-		if (visitors.length > 0){
-			result.status = 410;
-			return result;
-		}
-	});
-	
-	// generate a random channel for the session/user
-	var channelId = getRandomId();
-	
-	db.visitors.save({ sessionId: sessionId, channel: channelId }, { safe : true }, function(err, saved) {
-		// DB error...
-		// status code 503 : Service Unavailable
-		if(err){
-			result.status = 503;
-			return result;
-		}
-	});
-	
-	// new session saved...
-	result.status = 200;
-	result.channelId = channelId;
-	sys.puts(JSON.stringify(result));
-	return result;
-};
-
-

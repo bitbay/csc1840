@@ -29,14 +29,31 @@ var ServerApi = (function() {
 		}
 	};
 	
+	/**
+	 * Queries the images associated with this session (default, uploaded)
+	 *
+	 */
 	function getImages(callBack){
 		
+	};
+	
+	/**
+	 * Finishes the authorization process, confirming that user has finished 
+	 * connecting to the channel.
+	 */
+	function handshake(){
+		var xhr = new XMLHttpRequest();
+		xhr.open('POST', document.location+'handshake');
+		xhr.setRequestHeader('X-Visitor', SESSION_VARS.channel);
+		xhr.send();
 	};
 	
 	/* Public methods exposed for Server API */
 	return {
 		errors: serverApi.errors,
-		getImages: getImages
+		getImages: getImages,
+		handshake: handshake,
+		
 	};
 })();
 
@@ -55,17 +72,11 @@ var Pusherpipe = (function(){
 	 */
 	var greetHandler = function (data) {
 		Logger.log(data.msg, 'server');
-		
-		// get images from server ( default && already uploaded )...
-		// ServerApi.getImages(CSC1840.imagesRecieved);
-		var triggered = Pusherpipe.channel.trigger('client-needs-uploaded-images',{});
-		if( !triggered ) {
-			Logger.log('Failed to fetch images!', 'pusher');
-		};
 	};
 	
-	var recieveUploadedImages = function (data){
-		Logger.log(data.msg, 'server');
+	var recieveUploadedImages = function (images){
+		Logger.log(images.msg, 'server');
+		CSC1840.appendImages(images.data);
 	};
 	
 	
@@ -80,11 +91,13 @@ var Pusherpipe = (function(){
 	 * See: http://pusher.com/docs/pipe
 	 */
 	var init = function(){
+		/*
 		Pusher.log = function(message) {
 	  	if (window.console && window.console.log) {
 			window.console.log(message);
 		  }
 		};
+		*/
 		//Pusher.host = "ws.darling.pusher.com";
 		// set auth endpoint to the back-end route
         Pusher.channel_auth_endpoint = SESSION_VARS.authEndPoint;
@@ -94,16 +107,20 @@ var Pusherpipe = (function(){
 
 		// triggers the 'auth' server endpoint
 		this.channel = this.pusher.subscribe('private-'+SESSION_VARS.channel);
-		
+		// kick off connections...
+		this.channel.bind('pusher_internal:subscription_succeeded',
+			ServerApi.handshake);
 		
 		/* Application logic */
 		
 		// handshake - greet
 		this.channel.bind('greet', this.greetHandler);
-		
+
 		// needs: uploaded images urls
 		this.channel.bind('send-uploaded-images', this.recieveUploadedImages);
-		
+		this.channel.bind('server-error', function(data){
+			console.log(data);
+		});
 		
 		/* Pusher.com debug messages */
 		
@@ -128,7 +145,7 @@ var Pusherpipe = (function(){
 				// if the error is temporary...
 				Logger.log('Retrying in 2 seconds...', 'pusher');
 				setTimeout( function(){
-					this.channel = this.pusher.subscribe('private-'+SESSION_VARS.channel);
+					this.channel = this.pusher.subscribe('presence-'+SESSION_VARS.channel);
 				}, 2000);	
 			}
 		});
@@ -146,7 +163,8 @@ var Pusherpipe = (function(){
 	/* Public methods exposed for Pusher */
 	return {
 		init: init,
-		greetHandler: greetHandler
+		greetHandler: greetHandler,
+		recieveUploadedImages: recieveUploadedImages
 	}
 })();
 

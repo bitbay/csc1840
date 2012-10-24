@@ -10,6 +10,9 @@ var pusher_server = new PusherServer({
 pusher_server.on('connected', function(){
 	var pres = pusher_server.subscribe("presence-users", {user_id: "system"});
 	
+	priv.on('success', function(){
+		console.log('private success');
+	});
 	pres.on('success', function(){
 		console.log('presence success');
 	});
