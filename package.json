@@ -14,7 +14,8 @@
 		"mongojs": "*",
 		"q": "0.8.8",
 		"ejs": "*",
-		"crypto": "*"
+		"crypto": "*",
+		"node-pusher": "latest"
 	},
 	"engines": {
 		"node": "0.8.11",

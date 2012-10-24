@@ -3,23 +3,20 @@
  */
 var session = require('../session'),
 	path = require('path'),
+	pusher = require('../pusher'),
+//	Pusher = require('node-pusher'),
+	
 	sys = require("sys");
 
+
 exports.index = function(req, res) {
-		sys.puts("rendering index");
-		
-		// getting user images + default images
-		sys.puts( session.queryImages() );
+		sys.puts('rendering index for ' + req.session.channelId);
 		var data = {
-			images: [
-				{
-					url: 'data/upload/woman.jpg',
-					title: 'sample-1'
-				}
-			],
-			channel: req.session.id
+			images: [],
+			pusher_key: pusher.options.key,
+			channel: req.session.channelId
 		};
-		res.render('index',{data:data});
+		res.render('index',data);
 
 };
 

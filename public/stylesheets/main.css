@@ -101,6 +101,7 @@ aside{
 }
 	aside span{
 		display:block;
+		margin-bottom:10px;
 	}
 
 /* Styling webkit components */

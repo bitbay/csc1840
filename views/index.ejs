@@ -25,24 +25,33 @@
     	</header>
     	<div>
 			<nav>
-				<% for(var i=0; i<data.images.length; i++) {%>
+				<% for(var i=0; i<images.length; i++) {%>
 					<figure>
-						<img src="<%= data.images[i].url %>" alt="">
-  						<figcaption><%= data.images[i].title %></figcaption>
+						<img src="<%= images[i].url %>" alt="">
+  						<figcaption><%= images[i].title %></figcaption>
 					</figure>
 				<% } %>
 				<form method="post" enctype="multipart/form-data">
-					<input type="file" name="image" class="fubutton" onchange="handleFiles(this.files)"/>
+					<input type="file" name="image" class="fubutton" onchange="CSC1840.handleFiles(this.files)"/>
 				</form>
 			</nav>
 			<section>
 			</section>
 			<aside>
 				<span>Welcome.</span>
+				<span id="status"></span>
 			</aside>
 		</div>
 		<!-- SCRIPTS -->
-		<script>var channel='<%= data.channel %>';</script>
+		<script>
+			// injected session variables
+			var SESSION_VARS = {
+				channel: '<%= channel %>',
+				pusherKey: '<%= pusher_key %>'
+			};
+		</script>
+		<script src="http://js.pusher.com/1.12/pusher.min.js"></script>
+		<script src="scripts/plugins.js"></script>
 		<script src="scripts/app.js"></script>
     </body>
 </html>

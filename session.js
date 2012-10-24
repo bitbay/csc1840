@@ -10,13 +10,14 @@
  * @version
  */
 
-// mongodb access parameters
-var databaseUri = process.env.MONGOLAB_URI || 'csc1840', // set by mongolab heroku add-on
+// mongodb access parameters, set by mongolab heroku add-on or locally
+var databaseUri = process.env.MONGOLAB_URI || 'csc1840', 
 	collections = ['visitors'];
 	
 // going to use these...
 var db = require('mongojs').connect(databaseUri, collections),
 	ObjectId = require('mongojs').ObjectId,
+	crypto = require('crypto'),
 	q = require('q'),
 	sys = require('sys');
 
@@ -35,16 +36,17 @@ var db = require('mongojs').connect(databaseUri, collections),
  * @param {function}	the next middleware in the route
  */
 exports.preroute = function(req, res, next){
-	if(typeof req.session.registered == 'undefined')
+	if(typeof req.session.channelId == 'undefined')
 	{
 		sys.puts('has no session: ' + req.session.id);
 		// create a mongodb entry for the session and get the _id
 		// this _id will allow to subscribe a user to his own channel
 		var dbresult = storeSessionId(req.session.id);
-		switch(dbresult){
+		sys.puts('result:' + dbresult);
+		switch(dbresult.status){
 			case 200:
 				// OK
-				req.session.registered = true;
+				req.session.channelId = dbresult.channelId;
 				break;
 			case 410:
 				// already has registered/valid session entry
@@ -64,6 +66,14 @@ exports.preroute = function(req, res, next){
 	next();
 }
 
+/**
+ * queryImages
+ *
+ * searches already uploaded images in the users session history
+ *
+ * @param {string} the id of the ongoing session
+ * @return {object} the result of the query
+ */
 exports.queryImages = function (sessionId) {
 	// check if we have already a session with this id...(probably not)
 	var find = q.defer();
@@ -100,11 +110,13 @@ exports.queryImages = function (sessionId) {
  */
 function getRandomId(){
 	// syncronous  calling crypto...
+	var buf;
   	try {
-		var buf = crypto.randomBytes(32).toString('hex');
+		buf = crypto.randomBytes(32).toString('hex');
 	} catch (ex) {
 		// handle error
 	}
+	return buf;
 };
 
 /**
@@ -119,25 +131,44 @@ function getRandomId(){
  * @return {number} http response code 
  */
 function storeSessionId(sessionId) {
+	var result = {
+		status: 0,
+		channelId: undefined
+	};
 	// check if we have already a session with this id...(probably not)
 	db.visitors.find({ sessionId : sessionId }, function(err, visitors) {
 		// DB error...
 		// status code 503 : Service Unavailable
-		if (err) return 503;
+		if (err) {
+			result.status = 503;
+			return result;
+		}
 		
 		// session already exists...
 		// status code 410 : Gone
-		if (visitors.length > 0) return 410;
+		if (visitors.length > 0){
+			result.status = 410;
+			return result;
+		}
 	});
 	
-	db.visitors.save({ sessionId: sessionId }, { safe : true }, function(err, saved) {
+	// generate a random channel for the session/user
+	var channelId = getRandomId();
+	
+	db.visitors.save({ sessionId: sessionId, channel: channelId }, { safe : true }, function(err, saved) {
 		// DB error...
 		// status code 503 : Service Unavailable
-		if(err) return 503;
+		if(err){
+			result.status = 503;
+			return result;
+		}
 	});
 	
 	// new session saved...
-	return 200;
+	result.status = 200;
+	result.channelId = channelId;
+	sys.puts(JSON.stringify(result));
+	return result;
 };
 
 
