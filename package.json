@@ -15,7 +15,8 @@
 		"q": "0.8.8",
 		"ejs": "*",
 		"crypto": "*",
-		"node-pusher": "latest"
+		"node-pusher": "latest",
+		"pusher-server": "latest"
 	},
 	"engines": {
 		"node": "0.8.11",

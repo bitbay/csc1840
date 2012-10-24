@@ -100,8 +100,17 @@ aside{
 	margin:10px;
 }
 	aside span{
+		-webkit-flex: 1;
 		display:block;
 		margin-bottom:10px;
+		font-size: 12px;
+	}
+	
+	aside .anon{
+		color: #444;
+	}
+	aside .server{
+		color: red;
 	}
 
 /* Styling webkit components */

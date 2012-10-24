@@ -5,5 +5,5 @@ var pusher = new Pusher({
     key: '0869d75e9733f63ecf53',
     secret: '64cc9a5241126714e3bb'
 });
-
+console.log('pusherinstance created');
 module.exports = pusher;

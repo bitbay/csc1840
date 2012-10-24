@@ -3,30 +3,40 @@
  *
  * Uses express for the main framework, mongodb for database.
  *
- * author: daniel@bitbay.org
+ * @author	daniel@bitbay.org
+ * @version
  */
 
 // heroku environment || local
 var port = process.env.PORT || 3000;
 
+
 /* Module dependencies. */
+
 var	express = require('express'),
 	path = require('path'),
 	routes = require('./routes'),
 	sessionManager = require('./session.js'),
+	pusher = require('./pusher.js'),
+	webhooks = require('./webhooks.js'),
 	sys = require('sys');
 
 var app = module.exports = express();
 
 sys.puts(path.join(__dirname, '/public'));
+
+
 /* Application constants (setup) */
+
 app.set('port', port);
 app.set('view engine', 'ejs');
 app.set('views', __dirname + '/views');
 app.set('uploads', __dirname + '/public/data/upload');
 //app.set('source', __dirname + '/source');
 
+
 /* MiddleWare stack */
+
 app.configure(function(){
 	app.use(express.logger('dev'));
 	app.use(express.bodyParser({
@@ -62,11 +72,21 @@ app.configure('production', function(){
 
 
 /* Request routing */
+
 // routing of the main pages to index.html - public access
 app.get('/', sessionManager.preroute, routes.index);
 
 // Swallow the rest of requests at the end
 app.get('*', routes.index);
+
+
+/* Pusher messages */
+
+// authorize channel
+app.post('/auth', sessionManager.auth);
+
+// webhooks callback
+app.post('/webhooks', webhooks.hook);
 
 /* Startup application */
 if (!module.parent) {

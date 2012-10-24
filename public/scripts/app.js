@@ -27,43 +27,12 @@ var CSC1840 = ( function() {
 	
 	
 	
-	function setupPusher(){
-		// uses CSC1840 API KEY
-		var pusher = new Pusher(SESSION_VARS.pusherKey); 
-		//var channel = pusher.subscribe('private-'+<%= channel %>);
-		var channel = pusher.subscribe('test_channel');
-		channel.bind('greet', function(data) {
-			alert(data.greeting);
-		});
-		
-		// Some useful debug msgs
-		pusher.connection.bind('connecting', function() {
-		  //$('div#status').text('Connecting to Pusher...');
-		  Logger.log('Connecting to Pusher...');
-		});
-		pusher.connection.bind('connected', function() {
-		  //$('div#status').text('Connected to Pusher!');
-		  Logger.log('Connected to Pusher!');
-		  
-		  // get images from server ( default && already uploaded )...
-		  ServerApi.getImages(imagesRecieved);
-		});
-		pusher.connection.bind('failed', function() {
-		  //$('div#status').text('Connection to Pusher failed :(');
-		  Logger.log('Connection to Pusher failed');
-		});
-		channel.bind('subscription_error', function(status) {
-		  //$('div#status').text('Pusher subscription_error');
-		  Logger.log('Pusher subscription_error');
-		});
-	}
-	
 	/* MAIN */
 	
 	function run(){
 		Logger.log('Application startup');
 		
-		setupPusher();
+		Pusherpipe.init();
 		// Check for the various File API support.
 		//if (!checkSupport()) throw(errors.NO_SUPPORT);
 		

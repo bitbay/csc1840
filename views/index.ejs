@@ -38,19 +38,18 @@
 			<section>
 			</section>
 			<aside>
-				<span>Welcome.</span>
-				<span id="status"></span>
 			</aside>
 		</div>
 		<!-- SCRIPTS -->
 		<script>
 			// injected session variables
 			var SESSION_VARS = {
+				authEndPoint: '<%= auth_endpoint %>',
 				channel: '<%= channel %>',
 				pusherKey: '<%= pusher_key %>'
 			};
 		</script>
-		<script src="http://js.pusher.com/1.12/pusher.min.js"></script>
+		<script src="http://js.pusher.com/1.11/pusher.min.js"></script>
 		<script src="scripts/plugins.js"></script>
 		<script src="scripts/app.js"></script>
     </body>

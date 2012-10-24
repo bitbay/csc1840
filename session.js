@@ -6,7 +6,7 @@
  *
  * Uses mongoDB as database and mongojs as driver.
  *
- * @author daniel@bitbay.org
+ * @author	daniel@bitbay.org
  * @version
  */
 
@@ -19,6 +19,7 @@ var db = require('mongojs').connect(databaseUri, collections),
 	ObjectId = require('mongojs').ObjectId,
 	crypto = require('crypto'),
 	q = require('q'),
+	pusher = require('./pusher.js'),
 	sys = require('sys');
 
 /**
@@ -65,6 +66,54 @@ exports.preroute = function(req, res, next){
 	}
 	next();
 }
+
+/**
+ * Authentication backend 
+ *
+ * Authenticates user checking mongodb against channel_name.
+ * Sets the response content to 
+ */
+// Authenticate using stored mongodb values...
+exports.auth = function (req, res) {
+	var channel = req.body.channel_name.replace('private-', '');
+	
+	var find = q.defer();
+	db.visitors.find({
+		channel : channel
+	}, find.makeNodeResolver());
+
+	var result;
+
+	// resolved promise
+	find.promise.then(function(visitors) {
+		if (visitors.length === 1) {
+			// we have a visitor!
+			var authObj = pusher.auth(req.body.socket_id, req.body.channel_name);
+			res.status(200).json(authObj);
+			
+			// greet the user
+			// this could be setup in the Webhooks of pusher
+			// plugin admin page at heroku dashboard...
+			pusher.trigger(req.body.channel_name, 'greet', {msg:'Welcome!'});
+			
+		} else if (visitors.length === 0) {
+			// not registered...
+			// authentication failed...
+			// status code 401 : Unauthorized
+			res.status(401).end();
+		} else {
+			// ILLEGAL! CORRUPTED DATABASE
+			// the email can't appear more than once in the collection!
+			// status code 500 : Internal Server Error
+			res.status(500).end();
+		};
+	}, function(err) {
+		// DB error...
+		// status code 503 : Service Unavailable
+		res.status(503).end();
+	});
+};
+
 
 /**
  * queryImages
@@ -123,7 +172,7 @@ function getRandomId(){
  * storeSessionId
  *
  * Stores the generated id in the database, needed to access services of the
- * application - this one needs to be syncronous!
+ * application
  * assert (session_save_done)
  *
  * @param {string}	the req.session.id
