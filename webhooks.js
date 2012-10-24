@@ -8,10 +8,11 @@ exports.hook = function(req, res){
 
 	var app_key = req.get('X-Pusher-Key');
 	var webhook_signature = req.get('X-Pusher-Signature');
-
+	
+	var payload = req.body.toString();
 	//$expected_signature = hash_hmac( 'sha256', $body, $app_secret, false );
 	var expected_signature = crypto.createHmac('sha256', app_secret)
-		.update(req.body)
+		.update(payload)
 		.digest('hex');
 		
 	if(webhook_signature == expected_signature) {
