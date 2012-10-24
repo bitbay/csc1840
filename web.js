@@ -52,12 +52,9 @@ var bodyparse = function( req, res, next){
 };
 app.configure(function(){
 	app.use(express.logger('dev'));
-	app.use(express.json());
-	app.use(express.multipart());
-	app.use(express.urlencoded());
-/*	app.use(express.bodyParser({
+	app.use(express.bodyParser({
 		keepExtensions: true,
-		uploadDir: app.get('uploads') }));*/
+		uploadDir: app.get('uploads') }));
 	app.use(express.limit('5mb'));
 	app.use(express.methodOverride());
 	app.use(express.cookieParser('supasecret')); // not so...
@@ -102,6 +99,7 @@ app.get('*', routes.index);
 app.post('/auth', sessionManager.auth);
 
 // webhooks callback
+// ADD:ON webhooks currently are REALLY buggy with herokus 30sec request timeout
 app.post('/webhooks', webhooks.hook);
 
 /* Startup application */

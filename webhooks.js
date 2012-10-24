@@ -4,6 +4,8 @@ var pusher = require('./pusher.js'),
 exports.hook = function(req, res){
 	console.log('webhooking');
 	console.log(req.get("Content-Type"));
+	res.status(200).end();
+	/*
 	// environmental variable must be set
 	var app_secret = pusher.options.secret;
 	// key not really needed...
@@ -46,4 +48,5 @@ exports.hook = function(req, res){
     req.on("error", function(err) {
         return next(err);
     });
+    */
 };
