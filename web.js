@@ -54,7 +54,7 @@ app.configure(function(){
 	app.use(express.logger('dev'));
 	app.use(express.json());
 	app.use(express.multipart());
-//	app.use(express.urlencoded());
+	app.use(express.urlencoded());
 /*	app.use(express.bodyParser({
 		keepExtensions: true,
 		uploadDir: app.get('uploads') }));*/
