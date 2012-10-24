@@ -20,6 +20,7 @@ var	express = require('express'),
 	pusher = require('./pusher.js'),
 	pusher_server = require('./pusher_server.js'),
 	webhooks = require('./webhooks.js'),
+	//formidable = require("formidable"),
 	sys = require('sys');
 
 var app = module.exports = express();
@@ -37,12 +38,23 @@ app.set('uploads', __dirname + '/public/data/upload');
 
 
 /* MiddleWare stack */
-
+var bodyparse = function( req, res, next){
+	req.on('data', function(chunk){
+		req.body += chunk;
+	});
+	req.on('end', function(){
+		console.log(req.body);
+		next();
+	});
+	req.on("error", function(err) {
+        return next(err);
+    });
+};
 app.configure(function(){
 	app.use(express.logger('dev'));
-//	app.use(express.json());
+	app.use(express.json());
+	app.use(express.multipart());
 //	app.use(express.urlencoded());
-//	app.use(express.multipart());
 /*	app.use(express.bodyParser({
 		keepExtensions: true,
 		uploadDir: app.get('uploads') }));*/
