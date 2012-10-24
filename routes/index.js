@@ -21,7 +21,7 @@ exports.index = function(req, res) {
 			images: [],
 			pusher_key: pusher.options.key,
 			channel: req.session.channelId,
-			auth_endpoint: proc.env.PUSHER_ENDPOINT || 'http://localhost:3000/auth'
+			auth_endpoint: process.env.PUSHER_ENDPOINT || 'http://localhost:3000/auth'
 		};
 		res.render('index',data);
 
