@@ -2,9 +2,16 @@ var pusher = require('./pusher.js'),
 	crypto = require('crypto');
 
 exports.hook = function(req, res){
-	console.log('webhooking');
-	console.log(req.get("Content-Type"));
+	console.log('webhooking - all request go!');
+	console.log(req.body.events);
 	res.status(200).end();
+	
+	/* This feature had a LOT of bugs (heroku and pusher), request timeouts and
+	 * what not.
+	 * Long story short - cut it out, since this is a demo and not a production
+	 * application...
+	 * I leave it here, for the case it gets resolved.
+	 */
 	/*
 	// environmental variable must be set
 	var app_secret = pusher.options.secret;
@@ -22,13 +29,11 @@ exports.hook = function(req, res){
     });
 
     req.on("end", function() {
-    	console.log(bodyData);
     	hmac.update(bodyData);
         var crypted = hmac.digest("hex");
 
         if(crypted === webhook_signature) {
             // Valid request
-    		console.log(req.body);
 			for(var i=0; i< req.body.events; ++i)
 			{
 				for( key in req.body.events[i] ){
