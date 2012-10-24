@@ -4,7 +4,7 @@ var pusher = require('./pusher.js'),
 exports.hook = function(req, res){
 	console.log('webhooked');
 	// environmental variable must be set
-	var app_secret = pusher.object.secret;
+	var app_secret = pusher.options.secret;
 
 	var app_key = req.get('X-Pusher-Key');
 	var webhook_signature = req.get('X-Pusher-Signature');
