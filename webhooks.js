@@ -12,8 +12,9 @@ exports.hook = function(req, res){
 	// @see below
 	for(var i=0; i< req.body.events; ++i)
 	{
+		console.log('checking event:' + req.body.events[i]);
 		// visitor arrived...
-		if (req.body.events[i].name === 'channel_occupied') {
+		if (req.body.events[i].name == 'channel_occupied') {
 			var channel = req.body.events[i].channel;
 			// greet the user, this could be the beginning of a beautiful
 			// friendship...
@@ -22,15 +23,13 @@ exports.hook = function(req, res){
 			pusher.trigger(req.body.events[i].channel, 'greet', {msg:'Welcome!'});
 		}
 		// visitor left
-		if (req.body.events[i].name === 'channel_occupied') {
+		if (req.body.events[i].name == 'channel_vacated') {
 			var channel = req.body.events[i].channel;
 			console.log('sending bye');
 			pusher_server.unwatchVisitor(req.body.events[i].channel);
 		}
 	}
-	
 	res.status(200).end();
-	
 	/* This feature had a LOT of bugs (heroku and pusher), request timeouts and
 	 * what not.
 	 * Long story short - cut it out, since this is a demo and not a production
