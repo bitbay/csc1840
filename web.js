@@ -40,9 +40,12 @@ app.set('uploads', __dirname + '/public/data/upload');
 
 app.configure(function(){
 	app.use(express.logger('dev'));
-	app.use(express.bodyParser({
+//	app.use(express.json());
+//	app.use(express.urlencoded());
+//	app.use(express.multipart());
+/*	app.use(express.bodyParser({
 		keepExtensions: true,
-		uploadDir: app.get('uploads') }));
+		uploadDir: app.get('uploads') }));*/
 	app.use(express.limit('5mb'));
 	app.use(express.methodOverride());
 	app.use(express.cookieParser('supasecret')); // not so...

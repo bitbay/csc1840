@@ -3,6 +3,7 @@ var pusher = require('./pusher.js'),
 
 exports.hook = function(req, res){
 	console.log('webhooking');
+	console.log(req.get("Content-Type"));
 	// environmental variable must be set
 	var app_secret = pusher.options.secret;
 	// key not really needed...
@@ -19,6 +20,7 @@ exports.hook = function(req, res){
     });
 
     req.on("end", function() {
+    	console.log(bodyData);
     	hmac.update(bodyData);
         var crypted = hmac.digest("hex");
 
