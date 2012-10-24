@@ -90,13 +90,6 @@ exports.auth = function (req, res) {
 			// we have a visitor!
 			var authObj = pusher.auth(req.body.socket_id, req.body.channel_name);
 			res.status(200).json(authObj);
-			
-			// greet the user
-			// this could be setup in the Webhooks of pusher
-			// plugin admin page at heroku dashboard...
-			console.log('sending greet');
-			pusher.trigger(req.body.channel_name, 'greet', {msg:'Welcome!'});
-			
 		} else if (visitors.length === 0) {
 			// not registered...
 			// authentication failed...

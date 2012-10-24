@@ -80,6 +80,11 @@ var Pusherpipe = (function(){
 	 * See: http://pusher.com/docs/pipe
 	 */
 	var init = function(){
+		Pusher.log = function(message) {
+	  	if (window.console && window.console.log) {
+			window.console.log(message);
+		  }
+		};
 		//Pusher.host = "ws.darling.pusher.com";
 		// set auth endpoint to the back-end route
         Pusher.channel_auth_endpoint = SESSION_VARS.authEndPoint;

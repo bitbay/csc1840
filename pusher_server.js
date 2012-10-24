@@ -7,7 +7,7 @@ var pusher_server = new PusherServer({
 	secret: (process.env.PUSHER_SECRET || pusher.options.secret)
 });
 
-pusher_server.on('connect', function(){
+pusher_server.on('connected', function(){
 	var pres = pusher_server.subscribe("presence-users", {user_id: "system"});
 	
 	pres.on('success', function(){
@@ -22,4 +22,11 @@ pusher_server.on('connect', function(){
 	});
 });
 
+pusher_server.watchVisitor = function( channel ){
+	console.log('watching visitor:' + channel);
+};
+
+pusher_server.unwatchVisitor = function( channel ){
+	console.log('unwatching visitor:' + channel);
+};
 module.exports = pusher_server;
