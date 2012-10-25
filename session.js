@@ -20,6 +20,7 @@ var db = require('mongojs').connect(databaseUri, collections),
 	crypto = require('crypto'),
 	q = require('q'),
 	pusher = require('./pusher.js'),
+	opencvMain = require('./opencv.js'),
 	sys = require('sys');
 
 /**
@@ -51,10 +52,16 @@ exports.preroute = function(req, res, next){
 				// generate a random channel
 				var channelId = getRandomId();
 				
+				var defaultImage = [{ 
+					'url': 'woman.jpg',
+				 	'title': 'Sample'
+				 }];
+				
 				// save in the db
 				var save = q.defer();
 				db.visitors.save({ sessionId: req.session.id,
-					channel: channelId }, save.makeNodeResolver());
+					channel: channelId, images: defaultImage },
+					save.makeNodeResolver());
 
 				save.promise.then(function(saved) {
 					// new session registered...
@@ -75,8 +82,7 @@ exports.preroute = function(req, res, next){
 			res.status(503).end("FAILED TO FETCH USER DB");
 		});	
 	}else{
-		sys.puts('already has session: ' + req.session.id);
-		console.log('calling next');
+		// already has session
 		next();
 	}
 }
@@ -85,12 +91,12 @@ exports.preroute = function(req, res, next){
  * Authentication backend 
  *
  * Authenticates user checking mongodb against channel_name.
- * Sets the response content to 
+ * Sets the response content to 200 OK || 401 Not authorized || 500 Server error
  */
-// Authenticate using stored mongodb values...
 exports.auth = function (req, res) {
 	var channel = req.body.channel_name.replace('private-', '');
 	
+	// Authenticate using stored mongodb values...
 	var find = q.defer();
 	db.visitors.find({
 		channel : channel
@@ -156,17 +162,8 @@ var queryImages = function (channelId) {
 	find.promise.then(function(visitors) {
 		if (visitors.length === 1) {
 			var visitor = visitors[0];
-			
-			// Return the images...
-			var images = [{ url: '../public/data/upload/woman.jpg',
-				 			title: 'Sample'}];
-			var i=0;
-			for(i; i<visitor.images; ++i){
-				images.push({ url: visitor.images[i],
-				 			  title: ('User-'+i)});
-			}
 			pusher.trigger( 'private-'+channelId, 'send-uploaded-images',
-							{ data: images, msg: 'Images recovered' });
+							{ data: visitor.images, msg: 'Images recovered' });
 		} else {
 			// something got badly messed up!
 			// DB error...
@@ -179,6 +176,101 @@ var queryImages = function (channelId) {
 		pusher.trigger( 'private-'+channelId, 'server-error', {status:500});
 	});
 };
+
+
+/**
+ * fileupload
+ *
+ * Uploads the file into target directory, saves the reference in users db entry
+ * and triggers event on pusher notifing
+ */
+exports.fileupload = function(req, res){
+	var channel = req.get('X-Visitor');
+	
+	var find = q.defer();
+	db.visitors.find({
+		sessionId : req.session.id
+	}, find.makeNodeResolver());
+
+	// resolved promise
+	find.promise.then(function(visitors) {
+	
+		if (visitors.length == 1) {
+			// get selected visitor
+			var visitor = visitors[0];
+			
+			// get possible images already set
+			var imagesNow = visitor.images;
+
+			// get just uploaded filename
+			var url = req.files.image.path;
+			var upstreamName = url.substring(url.lastIndexOf('/')+1);			
+			imagesNow.push( {url: upstreamName} );
+			
+			// save img location in the db
+			var save = q.defer();
+			db.visitors.update({sessionId:req.session.id},
+				{ $set : {images: imagesNow }}, save.makeNodeResolver());
+
+			save.promise.then(function(saved) {
+				// updated images of user
+				pusher.trigger( 'private-'+channel, 'server-update',
+					{status:200, url:upstreamName});
+				pusher.trigger( 'private-'+channel, 'server-info',
+					{msg:'Uploaded image.'});
+				res.status(200).end();
+			}, function(err) {
+				// DB error...
+				// status code 503 : Service Unavailable
+				res.status(503).end();
+			});
+		} else {
+			// DB error...
+			// status code 503 : Service Unavailable
+			res.status(503).end();
+		}
+	});
+};
+
+/**
+ * opencv
+ *
+ * The iris segmentation class (wrapper)
+ *
+ * Runs in two phases, first it detects the Region of Interest, and then
+ * works with the encountered ROIs through a series of filters to finally
+ * extract the circle corresponding to the iris.
+ *
+ * ..first runs a basic sanity check.
+ */
+exports.opencv = function(req, res){
+	var src = req.query.src;
+	var channel = req.get('X-Visitor');
+	require('./opencv.js').opencv(src);
+	
+	var find = q.defer();
+	db.visitors.find({
+		sessionId : req.session.id
+	}, find.makeNodeResolver());
+	
+	// resolved promise
+	find.promise.then(function(visitors) {
+		if( visitors.length === 1 ){
+			
+			require('./opencv.js').opencv(src);
+			
+			res.status(200).end();
+		}else {
+			// authentication failed...
+			// status code 401 : Unauthorized
+			res.status(401).end();	
+		}
+	}, function(err){
+		// DB error...
+		// status code 503 : Service Unavailable
+		res.status(503).end();
+	});
+}
 
 /**
  * getRandomId

@@ -12,7 +12,6 @@
 var session = require('../session'),
 	path = require('path'),
 	pusher = require('../pusher'),
-	
 	sys = require("sys");
 
 exports.index = function(req, res) {

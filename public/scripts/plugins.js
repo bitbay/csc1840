@@ -10,7 +10,6 @@
  *
  * @author daniel@bitbay.org
  * 
- * See:
  */
 
 
@@ -30,12 +29,57 @@ var ServerApi = (function() {
 	};
 	
 	/**
+	 * calculateIris
+	 *
+	 * Sends the selected img url to the backend, and that kicks off the
+	 * opencv processing.
+	 *
+	 * @param {string} the name of the selected image to process
+	 */
+	function calculateIris(src){
+		var url = "/calculate/?src=" + escape(src);
+		xhr = new XMLHttpRequest();
+		xhr.open('POST', url, true);
+		xhr.setRequestHeader('X-Visitor', SESSION_VARS.channel);
+		xhr.send();
+	}
+	/**
 	 * HandleFilesUpload
 	 *
 	 * Takes care of the file-upload requests
 	 */
-	 function handleFilesUpload( files ){
+	 function handleFilesUpload( evt ){
+	 	var file = evt.target.files[0]; // FileList object
+		
+		// limit the file size to 5 megabytes
+	 	if( file.size > 5242880 ){
+	 		Logger.log('Image too large', 'error');
+	 		Logger.log('Max file size 5Mb', 'error');
+	 		return false;
+	 	}
 	 	
+	 	var formData = new FormData();
+	 	formData.append('image', file);
+	 	
+	 	xhr = new XMLHttpRequest();
+		xhr.open('post', '/upload', true);
+		// Set header with channel name
+		xhr.setRequestHeader('X-Visitor', SESSION_VARS.channel);
+		
+		// track progress
+		var onProgress = function(e) {
+			if (e.lengthComputable) {
+				var msg = 'Uploaded ' + (e.loaded/e.total)*100 + '%'
+				Logger.log(msg);
+			}
+		};
+		// File uploaded
+		xhr.addEventListener("load", function () {
+			Logger.log("Uploaded file");
+		}, false);
+		
+		// Send the formData containing the file
+		xhr.send(formData);
 	 }
 	 
 	/**
@@ -53,7 +97,8 @@ var ServerApi = (function() {
 	return {
 		errors: serverApi.errors,
 		handshake: handshake,
-		handleFiles: handleFilesUpload
+		handleFiles: handleFilesUpload,
+		calculateIris: calculateIris
 	};
 })();
 
@@ -91,13 +136,13 @@ var Pusherpipe = (function(){
 	 * See: http://pusher.com/docs/pipe
 	 */
 	var init = function(){
-		/*
+		
 		Pusher.log = function(message) {
 	  	if (window.console && window.console.log) {
 			window.console.log(message);
 		  }
 		};
-		*/
+		
 		//Pusher.host = "ws.darling.pusher.com";
 		// set auth endpoint to the back-end route
         Pusher.channel_auth_endpoint = SESSION_VARS.authEndPoint;
@@ -120,6 +165,12 @@ var Pusherpipe = (function(){
 		this.channel.bind('send-uploaded-images', this.recieveUploadedImages);
 		this.channel.bind('server-error', function(data){
 			console.log(data);
+		});
+		this.channel.bind('server-info', function(data){
+			Logger.log(data.msg);
+		});
+		this.channel.bind('server-update', function(data){
+			if( data.url ) CSC1840.appendImages([data]);
 		});
 		
 		/* Pusher.com debug messages */
@@ -247,13 +298,6 @@ var ErrorSink = ( function(){
 				// send to browser.
 				return false;
 		}
-	
-		// hide content, show error
-		/*
-		$('#content').addClass('hidden');
-		$('#alert').removeClass('hidden');
-		$('#alert span').text(error);
-		*/
 		// no browser error handling
 		return true;
 	};

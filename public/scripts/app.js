@@ -20,6 +20,22 @@ var CSC1840 = ( function() {
 	};
 	
 	/**
+	 * handleNav
+	 *
+	 * User clicking on a button results in segmentation of the iris.
+	 * Other clicks surpressed.
+	 * 
+	 */
+	 function handleNav(evt){
+	 	if(evt.target.nodeName == 'IMG'){
+	 		var img = document.querySelector('img .selected');
+	 		if( img ) img.className = '';
+	 		evt.target.className == 'selected';
+	 		ServerApi.calculateIris(evt.target.src);
+	 	}
+	 }
+	 
+	/**
 	 * appendImages
 	 *
 	 * Appends the recieved images to the nav element
@@ -34,8 +50,9 @@ var CSC1840 = ( function() {
 		for(i; i<images.length; ++i){
 			var fig = document.createElement('figure');
 			var img = document.createElement('img');
-			img.src = images[i].url;
-			img.alt = images[i].title;
+			var title = images[i].title == undefined ? 'User-'+i : images[i].title;
+			img.src = './data/upload/' + images[i].url;
+			img.alt = title;
 			
 			var figCap = document.createElement('figcaption');
 			var text = document.createTextNode(images[i].title);
@@ -46,43 +63,25 @@ var CSC1840 = ( function() {
 		}
 	}
 	
-	/* PRIVATE METHODS */
-	
-	
-	
 	/* MAIN */
 	
 	function run(){
 		Logger.log('Application startup');
 		
+		// init classes
 		Pusherpipe.init();
-		// Check for the various File API support.
-		//if (!checkSupport()) throw(errors.NO_SUPPORT);
 		
-		// hide the loading message.
-		//$('#loading').hide();
-		
-		// first check if user has a session/ticket
-		/*
-		if( !BoxApi.checkSession() ){
-			// insufficient authorization, put login-redirect...
-			$('#redirect').removeClass('hidden');
-		} else {
-			// trap the send event - stop page reload on submit			
-			$('form').bind( 'submit', CSC1842.submitTrap );
-			
-			// handle file selection changes
-			$('#files').change(handleFileSelect);
-			
-			// show form
-			$('#fileform').removeClass('hidden');
-		}
-		*/
+		// setup eventhandlers
+		document.querySelector('form>input').addEventListener('change',
+			ServerApi.handleFiles, false);
+		document.querySelector('nav').addEventListener('click',
+			CSC1840.handleNav);
 	};
 	/* Expose public methods and variables */
 	return {
 		run: run,
-		appendImages: appendImages
+		appendImages: appendImages,
+		handleNav: handleNav
 	};
 }());
 

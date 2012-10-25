@@ -32,10 +32,11 @@
 					</figure>
 				<% } %>
 				<form method="post" enctype="multipart/form-data">
-					<input type="file" name="image" class="fubutton" onchange="ServerApi.handleFiles(this.files)"/>
+					<input type="file" class="fubutton" />
 				</form>
 			</nav>
 			<section>
+				<label for="color">Select a color</label><input type="color" name="color" style="width:150px">
 			</section>
 			<aside>
 			</aside>

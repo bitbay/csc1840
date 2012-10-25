@@ -1,5 +1,5 @@
 var fs = require('fs'),
-	walk = require('walk'),
+	// compiled c++ library exposed with BEA to the v8 engine
 	cv = require('opencv-node'),
 	// module of object detection (faces && eyes)
 	Detector = require('./detector');
@@ -46,48 +46,45 @@ if(!haarType) haarType = 'face';
 
 /**
  * user uploads image (one person) >>
- * >>	1. check image for face, push result into candidate.face
  *		2. check image for eyes, push result into candidate.eyes
- *		(3. check image for nose, push result into candidate.nose)
  *		4. sanitarize result >> isFace? || ( hasEyes? && hasNose? )
  */
 
-// read img
-inputImage.mat = cv.imread(inputImage.url, 1);
-console.log('img.loaded...');
+exports.opencv = function( src ){
+	// read img
+	inputImage.mat = cv.imread(src, 1);
+	console.log('reading image...');
 
-var detector = new Detector();
-var results = detector.getROI(inputImage.mat);
-console.log('detection finished...');
-debugResultsROI(results);
-detector.getIris();
+	var detector = new Detector();
+	var results = detector.getROI(inputImage.mat);
 
-function debugResultsROI(ROI){
-	var result = inputImage.mat.clone();
-	var rect;
-	var i=0;
-	for (i; i < ROI.faces.length; ++i) {
-	  rect = ROI.faces[i];
-	  cv.rectangle(result, {
-		x: rect.x,
-		y: rect.y
-	  }, {
-		x: rect.x + rect.width,
-		y: rect.y + rect.height
-	  }, [255, 0, 0], 2);
-	};
-	for (i=0; i < ROI.eyes.length; ++i) {
-	  rect = ROI.eyes[i];
-	  cv.rectangle(result, {
-		x: rect.x,
-		y: rect.y
-	  }, {
-		x: rect.x + rect.width,
-		y: rect.y + rect.height
-	  }, [0, 255, 0], 2);
-	};
-	
-	cv.imwrite('./data/output/result.jpg', result);
-}
+	debugResultsROI(results);
+	detector.getIris();
 
-//console.log(inputImage.mat);
+	function debugResultsROI(ROI){
+		var result = inputImage.mat.clone();
+		var rect;
+		var i=0;
+		for (i; i < ROI.faces.length; ++i) {
+		  rect = ROI.faces[i];
+		  cv.rectangle(result, {
+			x: rect.x,
+			y: rect.y
+		  }, {
+			x: rect.x + rect.width,
+			y: rect.y + rect.height
+		  }, [255, 0, 0], 2);
+		};
+		for (i=0; i < ROI.eyes.length; ++i) {
+		  rect = ROI.eyes[i];
+		  cv.rectangle(result, {
+			x: rect.x,
+			y: rect.y
+		  }, {
+			x: rect.x + rect.width,
+			y: rect.y + rect.height
+		  }, [0, 255, 0], 2);
+		};
+	//cv.imwrite('/data/output/result.jpg', result);
+	}
+};

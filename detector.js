@@ -214,9 +214,7 @@ module.exports = function(){
 	 this.processImage = function(src){
 	 	this.inputImage = new cv.Mat(src.size, src.type);
 	 	src.copyTo(this.inputImage);
-console.log('pixelat[0,0]:'+ cv.mGet(src,1,1));
-console.log('pixelat[0,0]:'+ cv.mGet(src,1,2));
-console.log('pixelat[0,0]:'+ cv.mGet(src,2,3));
+	 	
 	 	// grayscale version of the source
 		this.grayImage = new cv.Mat(src.size, src.type);
 		// equalized version of the source
