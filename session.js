@@ -254,8 +254,22 @@ exports.opencv = function(req, res){
 	var visitor = req.get('X-Visitor');
 	var channel = 'private-'+visitor;
 	
+	/**
+	 * now THIS would be an ideal place to fork a new child_process, to use the
+	 * power of scalable multi-threaded environment for cloud-computing, but
+	 * unfortunatly on heroku for free it can't be done...
+	 */
+	/*
 	process.nextTick(function(){pusher.trigger( channel, 'server-info', {msg:'Loading OpenCV'})});
 	process.nextTick(function(){require('./opencv.js').opencv(absSrc, channel)});
+	*/
+	pusher.trigger( channel, 'server-info', {msg:'Loading OpenCV'});
+	var cp = require('child_process');
+	var n = cp.fork(__dirname + '/opencv_cp.js');
+
+	n.send({ src: absSrc, channel:channel});
+	
+	
 	res.status(200).end();
 }
 
