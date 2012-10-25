@@ -253,10 +253,10 @@ exports.opencv = function(req, res){
 	
 	var visitor = req.get('X-Visitor');
 	var channel = 'private-'+visitor;
-	res.status(200).end();
+	
 	process.nextTick(function(){pusher.trigger( channel, 'server-info', {msg:'Loading OpenCV'})});
 	process.nextTick(function(){require('./opencv.js').opencv(absSrc, channel)});
-	
+	res.status(200).end();
 }
 
 /**

@@ -119,7 +119,7 @@ module.exports = function(){
 		}
 		
 		if( this.DEBUG ){
-			cv.imshow("HISTOGRAM", histImage);
+			//cv.imshow("HISTOGRAM", histImage);
 		}
 	 }
 	/**
