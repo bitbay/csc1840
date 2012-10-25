@@ -7,10 +7,10 @@ var fs = require('fs'),
 var Mat = cv.Mat;
 
 // some default variables used during initialization
-var defaultImage = './data/input/test.jpg';
+var defaultImage = '/data/upload/woman.jpg';
 var haarTypes = {
-	face: './data/haar/faces/haarcascade_frontalface_default.xml',
-	eye: './data/haar/eyes/haarcascade_eye_tree_eyeglasses.xml'
+	face: '/data/haar/faces/haarcascade_frontalface_default.xml',
+	eye: '/data/haar/eyes/haarcascade_eye_tree_eyeglasses.xml'
 };
 
 // the image object used in the application (mockup || user-uploaded)
@@ -23,10 +23,6 @@ var inputImage = {
  * Getting command line parameters, used for development.
  * command line check, args [ image, haarType( face || eye) ]
  */
-var args = process.argv.splice(2);
-
-inputImage.url = args[0] && fs.existsSync(args[0]) && 
-	isImage(args[0]) ? args[0] : defaultImage;
 
 function isImage(img){
 	var ext = img.split('.').pop();
@@ -36,13 +32,6 @@ function isImage(img){
 			ext === 'tif';
 }
 
-var haarType;
-if(args[1]){
-	for (haar in haarTypes){
-		if( haar === args[1] ) haarType = args[1];
-	}
-}
-if(!haarType) haarType = 'face';
 
 /**
  * user uploads image (one person) >>
@@ -52,6 +41,7 @@ if(!haarType) haarType = 'face';
 
 exports.opencv = function( src ){
 	// read img
+	console.log(src);
 	inputImage.mat = cv.imread(src, 1);
 	console.log('reading image...');
 

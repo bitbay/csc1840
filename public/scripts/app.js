@@ -28,9 +28,9 @@ var CSC1840 = ( function() {
 	 */
 	 function handleNav(evt){
 	 	if(evt.target.nodeName == 'IMG'){
-	 		var img = document.querySelector('img .selected');
-	 		if( img ) img.className = '';
-	 		evt.target.className == 'selected';
+	 		var prev = document.querySelector('.selected');
+	 		if( prev ) prev.className = '';
+	 		evt.target.className = 'selected';
 	 		ServerApi.calculateIris(evt.target.src);
 	 	}
 	 }

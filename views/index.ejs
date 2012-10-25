@@ -25,20 +25,18 @@
     	</header>
     	<div>
 			<nav>
-				<% for(var i=0; i<images.length; i++) {%>
-					<figure>
-						<img src="<%= images[i].url %>" alt="">
-  						<figcaption><%= images[i].title %></figcaption>
-					</figure>
-				<% } %>
+				<!-- uploaded images will go here -->
 				<form method="post" enctype="multipart/form-data">
 					<input type="file" class="fubutton" />
 				</form>
 			</nav>
 			<section>
-				<label for="color">Select a color</label><input type="color" name="color" style="width:150px">
+				<div>
+					<label for="color">Select a color</label><input type="color" name="color" style="width:150px">
+				<div>
 			</section>
 			<aside>
+				<!-- the messages pushed from the server/pusher will go here... -->
 			</aside>
 		</div>
 		<!-- SCRIPTS -->

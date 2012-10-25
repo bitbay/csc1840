@@ -21,7 +21,7 @@ var db = require('mongojs').connect(databaseUri, collections),
 	q = require('q'),
 	pusher = require('./pusher.js'),
 	opencvMain = require('./opencv.js'),
-	sys = require('sys');
+	path = require('path');
 
 /**
  * preroute
@@ -133,10 +133,11 @@ exports.auth = function (req, res) {
  */
 exports.handshake = function (req, res){
 	var visitor = req.get('X-Visitor');
+	var channel = 'private-'+visitor;
+	
 	if( req.session.channelId === visitor ){
 		// greet the user
-		var channel = 'private-'+visitor;
-		pusher.trigger( channel, 'greet', {msg:'Welcome!'});
+		pusher.trigger( channel, 'server-greet', {msg:'Welcome!'});
 		res.status(200).send('Hello');
 		queryImages(req.session.channelId );
 	}else{
@@ -162,7 +163,7 @@ var queryImages = function (channelId) {
 	find.promise.then(function(visitors) {
 		if (visitors.length === 1) {
 			var visitor = visitors[0];
-			pusher.trigger( 'private-'+channelId, 'send-uploaded-images',
+			pusher.trigger( 'private-'+channelId, 'server-uploaded-images',
 							{ data: visitor.images, msg: 'Images recovered' });
 		} else {
 			// something got badly messed up!
@@ -185,7 +186,8 @@ var queryImages = function (channelId) {
  * and triggers event on pusher notifing
  */
 exports.fileupload = function(req, res){
-	var channel = req.get('X-Visitor');
+	var visitor = req.get('X-Visitor');
+	var channel = 'private-'+visitor;
 	
 	var find = q.defer();
 	db.visitors.find({
@@ -214,9 +216,9 @@ exports.fileupload = function(req, res){
 
 			save.promise.then(function(saved) {
 				// updated images of user
-				pusher.trigger( 'private-'+channel, 'server-update',
+				pusher.trigger( channel, 'server-update',
 					{status:200, url:upstreamName});
-				pusher.trigger( 'private-'+channel, 'server-info',
+				pusher.trigger( channel, 'server-info',
 					{msg:'Uploaded image.'});
 				res.status(200).end();
 			}, function(err) {
@@ -245,31 +247,16 @@ exports.fileupload = function(req, res){
  */
 exports.opencv = function(req, res){
 	var src = req.query.src;
-	var channel = req.get('X-Visitor');
-	require('./opencv.js').opencv(src);
+	// calculate the absolute path of the image
+	var fileName = path.basename(src);
+	var absSrc = path.resolve('./public/data/upload/' + fileName);
 	
-	var find = q.defer();
-	db.visitors.find({
-		sessionId : req.session.id
-	}, find.makeNodeResolver());
+	var visitor = req.get('X-Visitor');
+	var channel = 'private-'+visitor;
+	res.status(200).end();
+	process.nextTick(function(){pusher.trigger( channel, 'server-info', {msg:'Loading OpenCV'})});
+	process.nextTick(function(){require('./opencv.js').opencv(absSrc, channel)});
 	
-	// resolved promise
-	find.promise.then(function(visitors) {
-		if( visitors.length === 1 ){
-			
-			require('./opencv.js').opencv(src);
-			
-			res.status(200).end();
-		}else {
-			// authentication failed...
-			// status code 401 : Unauthorized
-			res.status(401).end();	
-		}
-	}, function(err){
-		// DB error...
-		// status code 503 : Service Unavailable
-		res.status(503).end();
-	});
 }
 
 /**

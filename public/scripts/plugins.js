@@ -136,13 +136,13 @@ var Pusherpipe = (function(){
 	 * See: http://pusher.com/docs/pipe
 	 */
 	var init = function(){
-		
+		/*
 		Pusher.log = function(message) {
 	  	if (window.console && window.console.log) {
 			window.console.log(message);
 		  }
 		};
-		
+		*/
 		//Pusher.host = "ws.darling.pusher.com";
 		// set auth endpoint to the back-end route
         Pusher.channel_auth_endpoint = SESSION_VARS.authEndPoint;
@@ -158,11 +158,23 @@ var Pusherpipe = (function(){
 		
 		/* Application logic */
 		
+		/**
+		 * Controllers listening to server-pushed events
+		 *
+		 *	-server-greet:	the server registered the visitor
+		 *	-server-uploaded-images:	the server recovered user saved images
+		 *								(for now without actual registration/login)
+		 *	-server-error/server-info:	generic channels for communicating events
+		 *	-server-update:	the last uploaded image is saved on the back-end and
+		 *					ready to use in the app
+		 *	-opencv-info/opencv-error:	generic channel of opencv processing results
+		 */
+		 
 		// handshake - greet
-		this.channel.bind('greet', this.greetHandler);
-
+		this.channel.bind('server-greet', this.greetHandler);
+		
 		// needs: uploaded images urls
-		this.channel.bind('send-uploaded-images', this.recieveUploadedImages);
+		this.channel.bind('server-uploaded-images', this.recieveUploadedImages);
 		this.channel.bind('server-error', function(data){
 			console.log(data);
 		});
@@ -171,6 +183,10 @@ var Pusherpipe = (function(){
 		});
 		this.channel.bind('server-update', function(data){
 			if( data.url ) CSC1840.appendImages([data]);
+		});
+		
+		this.channel.bind('opencv-info', function(data){
+			Logger.log(data.msg, 'opencv');
 		});
 		
 		/* Pusher.com debug messages */
@@ -265,7 +281,8 @@ var Logger = (function() {
 	
 	/* Public methods exposed for Logger */
 	return {
-		log: pushMessage
+		log: pushMessage,
+		logs: logs
 	};
 })();
 

@@ -26,7 +26,8 @@
  */
 
 var fs = require('fs'),
-	walk = require('walk'),
+	path = require('path'),
+	q = require('q'),
 	cv = require('opencv-node');	// used for everything else opencv related
 
 module.exports = function(){
@@ -47,8 +48,8 @@ module.exports = function(){
 		eyes: null
 	};
 	this.haar = {
-		face: './data/haar/faces/haarcascade_frontalface_default.xml',
-		eye: './data/haar/eyes/haarcascade_eye_tree_eyeglasses.xml'
+		face: path.resolve('./public/data/haar/faces/haarcascade_frontalface_default.xml'),
+		eye: path.resolve('./public/data/haar/eyes/haarcascade_eye_tree_eyeglasses.xml')
 		//eye: './data/haar/eyes/haarcascade_eye.xml'
 		//eye: './data/haar/eyes/haarcascade_lefteye_2splits.xml'
 	}
@@ -223,22 +224,6 @@ module.exports = function(){
 	 	
 		cv.cvtColor(src, this.grayImage, cv.CV_RGB2GRAY);
 		cv.equalizeHist(this.grayImage, this.eqImage);
-		
-		// debugging
-
-		cv.imwrite('./data/output/eqImage.jpg', this.eqImage);
-		//cv.imwrite('./data/output/filteredImage.jpg', this.filteredImage);
-		//console.log('0' + this.inputImage[0]);
-		
-/*		console.log(this.inputImage);
-		console.log('src.channels:');
-		console.log(this.inputImage.channels );
-		console.log('src.cols:');
-		console.log(this.inputImage.cols );
-		for( prop in this.inputImage ){
-			console.log(this.inputImage[prop]);
-		}
-		*/
 	 }
 	 
 	/**
@@ -329,10 +314,15 @@ module.exports = function(){
 		// run face detection
 		//this.ROI.faces = this.detectFaces(this.haar.face);
 		this.ROI.faces = [];
-		// run eyes detection
-		this.ROI.eyes = this.detectEyes(this.haar.eye);
+
+		// has promise
+		//var deferred = q.defer();
+		
+		// run eyes detection		
+		this.ROI.eyes = this.detectEyes(this.haar.eye); 
 		
 		return this.ROI;
+		//return deferred.promise;
 	}
 	
 	/**
@@ -403,12 +393,7 @@ module.exports = function(){
 		 		filter_method,
 		 		filter_size,
 		 		filter_size );
-		 	// DEBUG
-		 	if( this.DEBUG ){
-			 	cv.imshow("DEBUG", eyeRegion);
-			 	cv.waitKey();
-			}
-			
+		 	
 			// calculate histogram for the eye ROI
 			var histogram = this.calcHist(eyeRegion);
 			
@@ -420,12 +405,7 @@ module.exports = function(){
 		 	var thresholdedImage = new cv.Mat(eyeRegion.size,cv.CV_8UC1);
 		 	eyeRegion.copyTo(thresholdedImage);
 		 	
-		 	// DEBUG
-		 	if(this.DEBUG ) {
-		 		cv.imshow("DEBUG", thresholdedImage);
-			 	cv.waitKey();
-			}
-			
+		 	
 			/*******************************************************************
 			 *******************************************************************
 			 * Phase 2:
@@ -441,25 +421,14 @@ module.exports = function(){
 		 	
 		 	//cv.equalizeHist(thresholdedImage, thresholdedImage);
 		 	
-		 	// DEBUG
-		 	if( this.DEBUG ){
-			 	cv.imshow("DEBUG", thresholdedImage);
-			 	cv.waitKey();
-			}
-			
-		 	cv.imwrite('./data/output/eyeROI_'+i+'.jpg', eyeRegion);
+		 	
 		 	cv.threshold(eyeRegion,				// source
 				thresholdedImage,				// destination
 				parseInt(otsuThreshold*0.70),	// threshold
 				255,							// max value
 				cv.THRESH_BINARY_INV);			// threshold method
 			
-			// DEBUG
-		 	cv.imwrite('./data/output/threshold_calc_'+ i +'.jpg', thresholdedImage);
-			if( this.DEBUG ){
-			 	cv.imshow("DEBUG", thresholdedImage);
-			 	cv.waitKey();
-			}
+			
 		 	/* now done before calculating histogram */
 		 	/*
 		 	// Smoothing
@@ -478,30 +447,19 @@ module.exports = function(){
 		 	// "Opening" (eroding+dilating)
 		 	// reducing features for HoughCircles detection
 		 	var openImage = new cv.Mat(eyeRegion.size, cv.CV_8UC1);
-		 	
+		 	/*
 		 	cv.erode(thresholdedImage,	// source
 		 		openImage,				// destination
 		 		new cv.Mat(),			// mask
 		 		{x:-1,y:-1},
 				2 );					// iterations
 				
-		 	cv.imwrite('./data/output/eroded.jpg', openImage);
-			if( this.DEBUG ){
-			 	cv.imshow("DEBUG1", openImage);
-			 	cv.waitKey();
-			}
 		 	cv.dilate(openImage,		// source
 		 		openImage,				// destination
 		 		new cv.Mat(),			// mask
 		 		{x:-1,y:-1},
 				2 );					// iterations
-				
-		 	cv.imwrite('./data/output/dilated.jpg', openImage);
-			if( this.DEBUG ){
-			 	cv.imshow("DEBUG1", openImage);
-			 	cv.waitKey();
-			}
-		 	
+			*/	
 		 	// visualizing 'posible' HoughCircles intern canny
 		 	// threshold high/low mimic HoughCircles internals
 		 	var canny = new cv.Mat(openImage);
@@ -512,11 +470,7 @@ module.exports = function(){
 				 		3,
 				 		true
 		 	);
-			//cv.imwrite('./data/output/canny.jpg', canny);
-			if( this.DEBUG ){
-			 	cv.imshow("DEBUG-CANNY", canny);
-			 	cv.waitKey();
-			}
+
 		 	/*******************************************************************
 		 	 * Phase 3
 		 	 *
@@ -547,6 +501,7 @@ module.exports = function(){
 			);
 
 			console.log('circles found:'+circles.length);
+			/*
 			var inputRegion = new cv.Mat(this.inputImage, this.ROI.eyes[i]);
 			var debugImage = inputRegion;
 			if( debugImage.type === cv.CV_8UC1)
@@ -581,12 +536,6 @@ module.exports = function(){
 						1,
 						8);
 					
-				}
-				//cv.imwrite('./data/output/houghCircles.jpg', this.inputImage);
-				cv.imwrite('./data/output/houghcircles_'+i+'.jpg', debugImage);
-				if( this.DEBUG ){
-				 	cv.imshow("DEBUG1", debugImage);
-				 	cv.waitKey();
 				}
 			}
 		 	
@@ -633,203 +582,8 @@ module.exports = function(){
 				[255, 255, 0],
 				1, 8, 0
 			);
-		 	if( this.DEBUG ){
-			 	cv.imshow("DEBUG1", debugImage);
-			 	cv.waitKey();
-			}
-		 	
-		 	
-		 	
-		 	/*
-		 	// filter the image...
-			cv.cvSmooth(this.eqImage, this.eqImage, this.filter_method, this.filter_size, this.filter_size );
-		 	var grayImage = new cv.Mat(region.size,region.type);
-		 	var thresholdedImage = new cv.Mat(region.size,region.type);
-		 	
-			cv.cvtColor(region, grayImage, cv.CV_RGB2GRAY);
-			cv.imshow("before", grayImage);
-			cv.waitKey();
-			var grayImage = new cv.Mat(region.size,region.type);
-			
-		 	cv.threshold(region,
-				region,
-				0,
-				60,
-				cv.THRESH_BINARY);
-		 	cv.imwrite('./data/output/threshold_calc.jpg', thresholdedImage);
-		 	
-		 	cv.imshow("before", thresholdedImage);
-			cv.waitKey();
-			*/
-			/**
-			 * threshold(const Mat& src,
-			 *		Mat& dst,
-			 		double thresh,
-			 		double maxVal,
-			 		int thresholdType)
-			 */
-			 
-			/*/////////////
-			var grayFiltered = new cv.Mat(this.eqImage.size, this.eqImage.type);
-			this.eqImage.copyTo(grayFiltered);
-			//cv.cvtColor(grayFiltered, grayFiltered, cv.CV_RGB2GRAY);
-			var croppedGray = new cv.Mat(grayFiltered, this.ROI.eyes[i]);
-			var thresholdedImage = new cv.Mat(croppedGray.size,croppedGray.type);
-			*/
-			
-			/*cv.threshold(croppedGray,
-				thresholdedImage,
-				250,
-				255,
-				cv.THRESH_BINARY_INV | cv.THRESH_OTSU);
-		 	cv.imwrite('./data/output/threshold.jpg', thresholdedImage);
-		 	cv.imwrite('./data/output/threshold_cropped.jpg', croppedGray);*/
-		 	//var thresholdedImage = new cv.Mat(croppedGray.size,croppedGray.type);
-			
-			/*/////////////
-			cv.threshold(croppedGray,
-				thresholdedImage,
-				parseInt(this.otsuThreshold),
-				255,
-				cv.THRESH_BINARY_INV);
-		 	cv.imwrite('./data/output/threshold_calc.jpg', thresholdedImage);
-		 	var erodedMask = new cv.Mat(croppedGray.size,croppedGray.type);
-		 	cv.erode(thresholdedImage,
-		 		erodedMask,
-		 		new cv.Mat(),
-		 		{x:-1,y:-1},
-				2
-		 		);
-		 	cv.imwrite('./data/output/eroded.jpg', erodedMask);
-		 	*/
-		 	
-		 	/*
-		 	var edges = new cv.Mat(croppedGray.size,croppedGray.type);
-			cv.Canny(erodedMask,
-				edges,
-				this.edge_threshold,
-				this.edge_threshold * 3);
-			cv.imwrite('./data/output/canny_edges.jpg', edges);
-			cv.imwrite('./data/output/canny_eroded.jpg', erodedMask);
-			*/
-			/*
-			var circles = cv.HoughCircles(canny,
-				cv.CV_HOUGH_GRADIENT,	//method
-				1,	// dp
-				region.height, // minDist
-				30,	// param1
-				10,	// param2
-				10,
-				80);
-			*/
-			/* uhiris method
-			var circles = cv.HoughCircles(
-				edges,
-				cv.CV_HOUGH_GRADIENT,
-				1,
-				hough_circle_min_distance,
-				this.edge_threshold*2,
-				10,
-				1,
-				parseInt(edges.rows*0.3)
-			);
-			*/
-			
-			/*/////////////
-			var circles = cv.HoughCircles(
-				thresholdedImage,
-				cv.CV_HOUGH_GRADIENT,
-				1,
-				this.hough_circle_min_distance, //hough_circle_min_distance,
-				parseInt(this.edge_threshold*0.5),	//cv.canny( this, this*0.5)
-				10,
-				1,	// minRadius
-				parseInt(croppedGray.width * 0.5)//parseInt(croppedGray.rows*0.3) // maxRadius
-			);
-			*/
-		 	/* Canny(const Mat& image,
-		 		Mat& edges,
-		 		double threshold1,
-		 		double threshold2,
-		 		int apertureSize=3,
-		 		bool L2gradient=false)
-		 	*/
-		 	
-		 	/*/////////////
-		 	var canny2 = new cv.Mat(thresholdedImage);
-			//cv.cvtColor(canny2, canny2, cv.CV_RGB2GRAY);
-		 	cv.Canny( canny2,
-		 		canny2,
-		 		parseInt(this.edge_threshold*0.5),
-		 		this.edge_threshold,
-		 		3,
-		 		true);
-			//cv.imwrite('./data/output/canny.jpg', canny);
-			*/
-		
-			/* dilate(const Mat& src,
-				Mat& dst,
-				const Mat& element,
-				Point anchor=Point(-1, -1),
-				int iterations=1,
-				int borderType=cv::BORDER_CONSTANT,
-				const Scalar& borderValue=cv::morphologyDefaultBorderValue())
-				);*/
-			/*var dilate = new cv.Mat(canny, canny.type);
-			cv.dilate(canny,
-				dilate,
-				new cv.Mat(),
-				{x:-1,y:-1},
-				2
-				);
-			cv.imwrite('./data/output/dilate.jpg', dilate);*/
-		 	//Detect the circles in the image
-		 	/* HoughCircles(Mat& image,
-		 		int method,
-		 		double dp,
-		 		double minDist,
-		 		double param1=100,
-		 		double param2=100,
-		 		int minRadius=0,
-		 		int maxRadius=0)*/
-		 	/*
-			var circles = cv.HoughCircles(canny,
-				cv.CV_HOUGH_GRADIENT,	//method
-				1,	// dp
-				region.height, // minDist
-				30,	// param1
-				10,	// param2
-				10,
-				80);
-			*/
-			
-			/*/////////////
-			console.log('circles found:'+circles.length);
-			if( circles.length > 0 ){
-				var j = 0;
-				for(j; j<circles.length; ++j){
-					//cv::circle(*img, center, radius, color, thickness, lineType, shift);
-					//circle(Mat& img, Point center, int radius, const Scalar& color, int thickness=1, int lineType=8, int shift=0)
-					cv.circle(this.inputImage,
-						{ x: parseInt(circles[j][0])+this.ROI.eyes[i].x, y: parseInt(circles[j][1])+this.ROI.eyes[i].y},
-						//{ x: parseInt(circles[i][0]), y: parseInt(circles[i][1])},
-						parseInt(circles[j][2]),
-						[0,255,0],
-						1,
-						8);
-				}
-				//cv.imwrite('./data/output/houghCircles.jpg', this.inputImage);
-			}
-			*/
+			*/		 	
 		}
-		/*/////////////
-		cv.imwrite('./data/output/houghCircles.jpg', this.inputImage);
-		cv.namedWindow('hough',0);
-		cv.namedWindow('canny',0);
-		cv.imshow("hough", this.inputImage);
-		cv.imshow("canny", canny2);
-		cv.waitKey();
-		*/
 	 }
 	 
 	/**

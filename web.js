@@ -19,12 +19,14 @@ var	express = require('express'),
 	sessionManager = require('./session.js'),
 	pusher = require('./pusher.js'),
 	pusher_server = require('./pusher_server.js'),
-	sys = require('sys');
+	cv = require('opencv-node'),
+	// module of object detection (faces && eyes)
+	Detector = require('./detector'),
+	sys = require('sys'),
+	fs = require('fs');
 
+var Mat = cv.Mat;
 var app = module.exports = express();
-
-sys.puts(path.join(__dirname, '/public'));
-
 
 /* Application constants (setup) */
 
@@ -102,6 +104,5 @@ app.post('/handshake', sessionManager.handshake);
 /* Startup application */
 if (!module.parent) {
 	app.listen(app.get('port'));
-	//pusher_server.connect();
 	console.log('Express started on port '+ app.get('port'));
 }

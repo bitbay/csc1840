@@ -77,13 +77,21 @@ figure{
 		padding:3px;
 		box-shadow: 0 0 20px rgba(0, 0, 0, 0.4), 0 0 2px black;
 	}
-	figure img:hover{
+	figure img{
+		-webkit-filter: grayscale(100%);
+		background-color:white;
+		width:100px;
+		height:80px;
+		padding:3px;
+		box-shadow: 0 0 20px rgba(0, 0, 0, 0.4), 0 0 2px black;
+	}
+	figure img:hover:not(.selected){
 		-webkit-filter:none;
 	}
-	figure img:active{
+	figure img:active:not(.selected){
 		-webkit-filter:none;
 	}
-	.selected img{
+	.selected{
 		-webkit-filter:none;
 	}
 
