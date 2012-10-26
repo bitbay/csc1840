@@ -5,7 +5,7 @@
  *
  *	- ServerApi
  *	- Pusherpipe (not the real-deal! just one-way, server sent events...)
- *	- CanvasDO
+ *	- ViewManager
  *	- Logger
  *	- ErrorSink
  *	
@@ -24,9 +24,7 @@ var ServerApi = (function() {
 	/* SETTINGS FOR THE PLUGIN */
 	var serverApi = {
 		// error messages used by the module
-		errors: {
-			REST_FAIL: 'There was a problem communicating with the server'
-		}
+		errors: {}
 	};
 	
 	/**
@@ -67,6 +65,7 @@ var ServerApi = (function() {
 	 	
 	 	xhr = new XMLHttpRequest();
 		xhr.open('post', '/upload', true);
+		
 		// Set header with channel name
 		xhr.setRequestHeader('X-Visitor', SESSION_VARS.channel);
 		
@@ -77,6 +76,7 @@ var ServerApi = (function() {
 				Logger.log(msg);
 			}
 		};
+		
 		// File uploaded
 		xhr.addEventListener("load", function () {
 			Logger.log("Uploaded file");
@@ -198,12 +198,13 @@ var Pusherpipe = (function(){
 		
 		this.channel.bind('opencv-result', function(data){
 			if( data.roi ){
-				CanvasDO.eyesROI = data.roi.eyes;
-				CSC1840.drawRoi();
+				ViewManager.eyesROI = data.roi.eyes;
+				ViewManager.drawRoi();
 			}
 			if( data.iris ){
-				CanvasDO.irises = data.iris;
-				CSC1840.drawImage();
+				ViewManager.irises = data.iris;
+				//ViewManager.drawImage();
+				ViewManager.setState( 'EDITING_STATE' );
 			}
 		});
 		
@@ -255,19 +256,59 @@ var Pusherpipe = (function(){
 })();
 
 /**
- * CanvasDO 
+ * ViewManager 
  *
- * Data Object (okai, with some loader logic to cache) for the canvas, with
- * R/W members the drawing function needs to redraw the actual stage at any
- * given moment (window.onresize, etc)
+ * Manager for the canvases, with simple state the app is in.
+ * (From DAO to Class)
+ *
  */
-var CanvasDO = (function(){
-	this.imageURL = '';
-	this.eyesROI = [];
-	this.irises = [];
-	this.pupils = [];
-	this.actualScale;
-	this.originalImageRect = {};
+var ViewManager = (function(){
+	var errors = {
+		NO_STATE : 'The requested state is INVALID.'
+	};
+	var state = 'INIT_STATE';
+	var imageURL = '';
+	var eyesROI = [];
+	var irises = [];
+	var pupils = [];
+	var actualScale;
+	var originalImageRect = {};
+	var filters = {
+		hue: 0,			// 0-360deg
+		grayscale: 0,	// 0-1
+		sepia: 0,		// 0-1
+		saturate: 1,	// 0-1
+		brightness: 0,	// 0-1
+		contrast: 1,	// 0-1
+		invert: 0
+	};
+	
+	/**
+	 * updates the reference in this class with the new values recieved
+	 *
+	 * @param {string} the filter changed.
+	 * @param {number} the new filter value
+	 */
+	var setFilter = function( filter, value ){
+		filters[filter] = value;
+		updateStyle();
+	};
+	
+	/**
+	 * updates the CSS applied to the upper layer...
+	 *
+	 */
+	var updateStyle = function(){
+		var style = '-webkit-filter: hue-rotate(' + filters.hue + 'deg) ' +
+									 'grayscale(' + filters.grayscale + ') ' +
+									 'sepia(' + filters.sepia + ') ' +
+									 'saturate(' + filters.saturate + ') ' +
+									 'brightness(' + filters.brightness + ') ' +
+									 'contrast(' + filters.contrast + ') ' +
+									 'invert(' + filters.invert + ') ';
+		
+		document.querySelector('#layer0').setAttribute('style', style);
+	};
 	
 	/* calculate 'letterbox' format to fit-scale the image in the 'stage'
 	 * container
@@ -277,7 +318,7 @@ var CanvasDO = (function(){
 	 * @param {object}	optional object (img || {}) with width/height fields,
 	 * 					the 'inner' component to resize
 	 */
-	this.correctedTransform = function(rect, image){
+	var correctedTransform = function(rect, image){
 		// save the original rect of image dimensions
 		this.originalImageRect = { width: image.width, height: image.height };
 		
@@ -332,7 +373,246 @@ var CanvasDO = (function(){
 		return {x:x, y:y, width:width, height:height, scale:scale};
 	};
 	
-	return this;
+	
+	// helper utility
+	// @see: http://www.quirksmode.org/dom/getstyles.html
+	function getStyle(el,styleProp)
+	{
+		return document.defaultView.getComputedStyle(el,null).
+			getPropertyValue(styleProp);
+	}
+	
+	/**
+	 * clearCanvas
+	 *
+	 * clears a canvas before drawing letting the parent flex into position/dim
+	 *
+	 * @param {canvasElement} canvaselement to reset
+	 */
+	var clearCanvas = function( canvas ){
+		canvas.setAttribute('style', 'display:none;');
+	  	var ctx = canvas.getContext('2d');
+		// Store the current transformation matrix
+		ctx.save();
+		
+		// Use the identity matrix while clearing the canvas
+		ctx.setTransform(1, 0, 0, 1, 0, 0);
+		ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+		// Restore the transform
+		ctx.restore();
+	  	canvas.setAttribute('style', 'display:block;');
+	  	canvas.width = 0;
+	  	canvas.height = 0;
+	};
+	
+	
+	/**
+	 * drawImage
+	 *
+	 * redraws the whole image to fit inside the -webkit-flex container, and let
+	 * it flow...
+	 */
+	var drawImage = function (canvas){
+		if( ViewManager.imageURL == '' ) return false;
+		var img = new Image();
+		
+		img.onload = function(){
+			//var grandParent = document.querySelector('body>section');
+			var grandParent = canvas.parentNode.parentNode;
+			var padding = getStyle( grandParent, 'padding');
+			padding = parseInt(padding);
+			var rect = { width:grandParent.clientWidth-padding*2,
+						 height: grandParent.clientHeight };
+			var cT = ViewManager.correctedTransform(rect, img);
+			canvas.width = cT.width;
+			canvas.height = cT.height;
+			var ctx = canvas.getContext('2d');
+			ctx.save();
+			ctx.drawImage(	img,
+							0, 0,
+							cT.width, cT.height);
+			ctx.restore();
+			
+			var calcTop = (grandParent.clientHeight-2*padding-canvas.height) * 0.5;
+			var calcLeft = (canvas.width)*0.5;
+			canvas.parentNode.setAttribute('style', 'top:'+ calcTop +
+											'px; left:-'+ calcLeft +'px;');
+		};
+		img.src = ViewManager.imageURL;
+	};
+	
+	/**
+	 * drawRoi
+	 *
+	 * debug feature, that displays the detected Regions of interest (eyes)
+	 * not used.
+	 */
+	var drawRoi = function (){
+		if( this.state == 'EDITING_STATE' ) return;
+		// if drawing the iris too, not the debug regions...
+		if( ViewManager.irises.length !== 0 ) return;
+		
+		// getting scale modifier
+		var sc = ViewManager.actualScale;
+		var canvas = document.querySelector('canvas');
+		var ctx = canvas.getContext('2d');
+		ctx.save();
+		ctx.strokeStyle = "#F9F9F9";
+		ctx.lineWidth = 1;
+		
+		var i;
+		for(i; i<ViewManager.eyesROI; ++i) {
+			ctx.strokeRect(	ViewManager.eyesROI[i].x*sc,
+							ViewManager.eyesROI[i].y*sc,
+							ViewManager.eyesROI[i].width*sc,
+							ViewManager.eyesROI[i].height*sc );
+		}
+		ctx.restore();		
+	};
+	/**
+	 * drawMask
+	 *
+	 * draws in the middle layer the original image masked with the iris circles
+	 */
+	 var drawMask = function(canvas){
+	 	if( ViewManager.imageURL == '' ) return false;
+	 	
+		// getting canvas-scale modifier
+		var sc = ViewManager.actualScale;
+		var img = new Image();
+		
+		img.onload = function(){
+			// getting the padding for the container
+			var padding = getStyle( canvas.parentNode.parentNode, 'padding');
+			padding = parseInt(padding);
+			
+			//  calculating the real container dimensions
+			var rect = { width:canvas.parentNode.parentNode.clientWidth-padding*2,
+						 height: canvas.parentNode.clientHeight };
+			var cT = ViewManager.correctedTransform(rect, img);
+			
+			// setting canvas dimension
+			canvas.width = cT.width;
+			canvas.height = cT.height;
+			
+			// drawing the image inside the resized canvas
+			var ctx = canvas.getContext('2d');
+			ctx.save();
+			ctx.beginPath();
+			ctx.drawImage(	img,
+							0, 0,
+							cT.width, cT.height);
+		    ctx.closePath();
+		    
+		    // setting the masking operation...
+		    // the next thing that goes inside the context will cut this out.
+		    // for a complete list 
+		    // @see: https://developer.mozilla.org/en-US/docs/Canvas_tutorial/Compositing
+		    ctx.globalCompositeOperation = 'destination-out';
+		    
+		    // now draw the mask...
+		    var i = 0;
+		    for(i; i<ViewManager.irises.length; ++i){
+				if ( ViewManager.irises[i].length < 1 ) return;
+				
+				//ctx.strokeStyle = '#000000';
+				//ctx.lineWidth = 0;
+				//var radgrad = ctx.createRadialGradient(x0, y0, r0, x1, y1, r1);
+				
+				// regionOffset
+				var rO = { 	x: ViewManager.eyesROI[i].x*sc,
+							y: ViewManager.eyesROI[i].y*sc };
+							
+		    	var radgrad = ctx.createRadialGradient(
+		    		parseInt(ViewManager.irises[i][0]*sc+rO.x),
+		    		parseInt(ViewManager.irises[i][1]*sc+rO.y),
+		    		parseInt(ViewManager.irises[i][2]*sc*0.5),
+		    		parseInt(ViewManager.irises[i][0]*sc+rO.x),
+		    		parseInt(ViewManager.irises[i][1]*sc+rO.y),
+		    		parseInt(ViewManager.irises[i][2]*sc));
+		    	radgrad.addColorStop(0, 'rgba(0,0,0,1)');
+				radgrad.addColorStop(0.8, 'rgba(0,0,0,1)');
+				radgrad.addColorStop(0.95, 'rgba(0,0,0,0.9)');
+				radgrad.addColorStop(1, 'rgba(0,0,0,0)');
+				ctx.fillStyle = radgrad;
+				ctx.beginPath();
+				
+				ctx.arc(parseInt(ViewManager.irises[i][0]*sc+rO.x),
+						parseInt(ViewManager.irises[i][1]*sc+rO.y),
+						parseInt(ViewManager.irises[i][2]*sc),
+						0,Math.PI*2,false);
+				ctx.fill();
+				ctx.closePath();
+			}
+			ctx.restore();
+		};
+		
+		img.src = ViewManager.imageURL;
+	 };
+	 
+	/**
+	 * The application can be in three distint states.
+	 *
+	 * INIT_STATE: startup. No images on the screen, just the nav icons.
+	 * LOADING_STATE: once the user clicks a thumbnail the application steps in
+	 * 	this state. Just the middle (colored) image is visible.
+	 * EDITING_STATE: the iris data is loaded, and the user can change the color
+	 * 
+	 * @param {string} the state to switch to.
+	 */
+	var setState = function ( nextState ){
+		switch (nextState){
+			case 'LOADING_STATE' :
+			{	
+				this.state = 'LOADING_STATE';
+		 		// reset previous results
+		 		ViewManager.eyesROI = [];
+				ViewManager.irises = [];
+				
+				// trigger calculus on server
+				ServerApi.calculateIris(this.imageURL);
+				
+				// put the view in LOADING_STATE...
+				var canvas1 = document.querySelector('#layer1');
+		 		clearCanvas(document.querySelector('#layer0'));
+		 		clearCanvas(canvas1);
+		 		drawImage(canvas1);
+
+		 		break;
+			}
+			case 'EDITING_STATE' :
+			{
+				this.state = 'EDITING_STATE';
+
+				// move the image to the filtered layer0
+				// draw the middle colored/masked layer
+				var canvas0 = document.querySelector('#layer0');
+				var canvas1 = document.querySelector('#layer1');
+		 		clearCanvas(canvas0);
+		 		clearCanvas(canvas1);
+				drawImage(canvas0);
+				drawMask(canvas1);
+				break;
+			}
+			default:
+				throw new Error( this.errors.NO_STATE );
+				break;
+		}
+	};
+	
+	/* Public methods exposed for Logger */
+	return {
+		setState: setState,
+		correctedTransform: correctedTransform,
+		errors: errors,
+		imageURL: imageURL,
+		clearCanvas: clearCanvas,
+		drawImage: drawImage,
+		drawRoi: drawRoi,
+		drawMask: drawMask,
+		setFilter: setFilter
+	}
 })();
  
 /**
@@ -365,7 +645,7 @@ var Logger = (function() {
 		};
 		
 		// append the message to the aside (msg container)
-		var el = document.querySelector('aside');
+		var el = document.querySelector('#messages');
 		var span = document.createElement('span');
 		var text = document.createTextNode(msg);
 		span.className = sender;
@@ -409,9 +689,8 @@ var ErrorSink = ( function(){
 		// strip added string
 		var error = msg.replace("Uncaught ","");
 		switch(error){
-			case CSC1840.errors.NO_SUPPORT:
-				// handle 'could not get ticket' error
-				console.log("CSC1840 [error]: " + error);
+			case ViewManager.errors.NO_STATE:
+				console.log("ViewManager [error]: " + error);
 				break;
 			default:
 				// application can not handle error...

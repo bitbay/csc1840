@@ -19,21 +19,10 @@ var CSC1840 = ( function() {
 		NO_SUPPORT : 'The ... APIs are not fully supported in this browser.'
 	};
 	
-	// reference to the image shown on screen, so that calculated events that
-	// do not referr to this image, won't get drawn on screen...
-	var onScreenImage = '';
-
 	// will contain the already calculated result to save processing on server.
 	// TODO: implement...
 	var calculatedCache = {};
 	
-	// helper utility
-	// @see: http://www.quirksmode.org/dom/getstyles.html
-	function getStyle(el,styleProp)
-	{
-		return document.defaultView.getComputedStyle(el,null).
-			getPropertyValue(styleProp);
-	}
 	
 	/* EVENT HANDLERS */
 	
@@ -50,33 +39,45 @@ var CSC1840 = ( function() {
 	 		var prev = document.querySelector('.selected');
 	 		if( prev ) prev.className = '';
 	 		evt.target.className = 'selected';
-	 		ServerApi.calculateIris(evt.target.src);
-	 		CanvasDO.imageURL = evt.target.src;
-
-	 		// reset previous results
-	 		CanvasDO.eyesROI = [];
-			CanvasDO.irises = [];
-
-	 		clearCanvas();
-	 		drawImage();
+	 		
+	 		ViewManager.imageURL = evt.target.src;
+			ViewManager.setState( 'LOADING_STATE');
 	 	}
 	}
 	 
 	/**
 	 * handleResize
 	 *
-	 * by resizing the window the canvas needs to be redrawn and scaled.
+	 * by resizing the window the canvases needs to be cleared, ocasionally 
+	 * redrawn (depending on the state the app is Viewing/Coloring)
 	 *
 	 * @param {event}	the window resize event
 	 */
 	function handleResize(evt){
-		var section = document.querySelector('section');
-		var controller = document.getElementById('controller');
-	  	var canvas = document.querySelector('canvas');
-	  	clearCanvas(canvas);
-	  	drawImage();
-	  }
-	  
+		var canvas0 = document.querySelector('#layer0');
+		var canvas1 = document.querySelector('#layer1');
+		ViewManager.clearCanvas(canvas0);
+		ViewManager.clearCanvas(canvas1);
+
+		if( ViewManager.state === 'EDITING_STATE' ){
+			ViewManager.drawImage(canvas0);
+			ViewManager.drawMask(canvas1);
+		} else if ( ViewManager.state !== 'INIT_STATE' ){
+			ViewManager.drawImage( canvas1);
+		}
+	}
+	
+	/**
+	 * handles the change of the controller inputs, delegating values to the 
+	 * ViewManager class
+	 *
+	 * @param {event}	the change event fired by the input
+	 */
+	function handleController(evt){
+		var inputId = evt.target.id;
+		ViewManager.setFilter( inputId, evt.target.value );
+	}
+	
 	/**
 	 * appendImages
 	 *
@@ -105,139 +106,6 @@ var CSC1840 = ( function() {
 		}
 	}
 	
-	/**
-	 * clearCanvas
-	 *
-	 * clears the canvas before drawing
-	 *
-	 * @param {canvasElement} optional reference to the canvas
-	 */
-	function clearCanvas( canvas ){
-		if( !canvas ) canvas = document.querySelector('canvas');
-		canvas.setAttribute('style', 'display:none;');
-	  	var ctx = canvas.getContext('2d');
-		// Store the current transformation matrix
-		ctx.save();
-		
-		// Use the identity matrix while clearing the canvas
-		ctx.setTransform(1, 0, 0, 1, 0, 0);
-		ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-		// Restore the transform
-		ctx.restore();
-	  	canvas.setAttribute('style', 'display:block;');
-	  	canvas.width = 0;
-	  	canvas.height = 0;
-	}
-	
-	
-	/**
-	 * drawImage
-	 *
-	 * redraws the whole image
-	 */
-	function drawImage(){
-		if( CanvasDO.imageURL == '' ) return false;
-		var canvas = document.querySelector('canvas');
-		
-		var img = new Image();
-		
-		img.onload = function(){	
-			//getStyle(canvas.parentNode, 'clientWidth');
-			var padding = getStyle(canvas.parentNode.parentNode, 'padding');
-			padding = parseInt(padding);
-			var rect = { width:canvas.parentNode.parentNode.clientWidth-padding*2,
-						 height: canvas.parentNode.clientHeight };
-			var cT = CanvasDO.correctedTransform(rect, img);
-			canvas.width = cT.width;
-			canvas.height = cT.height;
-			var ctx = canvas.getContext('2d');
-			ctx.save();
-			ctx.drawImage(	img,
-							0, 0,
-							cT.width, cT.height);
-			ctx.restore();
-			//canvas.setAttribute('style', 'position:relative; left:'+cT.x+'px; top:'+cT.y+'px;' );
-			// check if results correspond to the actual on-screen-image
-			if( CanvasDO.imageURL == img.src ) {
-			  	if( CanvasDO.eyesROI ) drawRoi();
-			  	if( CanvasDO.irises ) drawIris();
-			}
-		};
-		
-		img.src = CSC1840.onScreenImage = CanvasDO.imageURL;
-		
-	}
-	
-	/**
-	 * drawRoi
-	 *
-	 * debug feature, that displays the detected Regions of interest (eyes)
-	 */
-	function drawRoi(){
-		if( CSC1840.onScreenImage !== CanvasDO.imageURL ) return;
-		// if drawing the iris too, not the debug regions...
-		if( CanvasDO.irises.length !== 0 ) return;
-		
-		// getting scale modifier
-		var sc = CanvasDO.actualScale;
-		var canvas = document.querySelector('canvas');
-		var ctx = canvas.getContext('2d');
-		ctx.strokeStyle = "#F9F9F9";
-		ctx.lineWidth = 1;
-		function debugRoi(roi, index, array) {
-			ctx.strokeRect(	roi.x*sc,roi.y*sc,
-							roi.width*sc,roi.height*sc );
-		}
-		CanvasDO.eyesROI.forEach(debugRoi);
-		
-	};
-	
-	/**
-	 * drawIris
-	 *
-	 * draws the iris over the eye, with the user selected color.
-	 * 
-	 * @param {color}	optional, selected color
-	 */
-	function drawIris(){
-		// getting canvas-scale modifier
-		var sc = CanvasDO.actualScale;
-		var canvas = document.querySelector('canvas');
-		var color = document.querySelector('#controller>input').value;
-		
-		function debugIris(iris, index, array) {
-			if ( iris.length < 1 ) return;
-			var ctx = canvas.getContext('2d');
-			ctx.strokeStyle = color;
-			ctx.strokeStyle = color;
-			ctx.lineWidth = 1;
-			// regionOffset
-			var rO = { x: CanvasDO.eyesROI[index].x*sc,
-						y: CanvasDO.eyesROI[index].y*sc};
-			ctx.beginPath();
-			ctx.arc(parseInt(iris[0]*sc+rO.x),
-					parseInt(iris[1]*sc+rO.y),
-					parseInt(iris[2]*sc),
-					0,Math.PI*2,false); // Outer circle
-			ctx.stroke();
-			//ctx.fill();
-		}
-		if ( CanvasDO.eyesROI.length > 0 )
-			CanvasDO.irises.forEach(debugIris);
-	};
-	
-	/**
-	 * handles the change of the colorpicker element, redraws the eye regions
-	 *
-	 * @param {event}	the change event fired by the colorpicker
-	 */
-	function handleColor(evt){
-		Logger.log('Color changed to '+evt.target.value);
-		clearCanvas();
-		drawImage();
-	}
-	
 	/* MAIN */
 	
 	function run(){
@@ -256,9 +124,9 @@ var CSC1840 = ( function() {
 		document.querySelector('nav').addEventListener('click',
 			CSC1840.handleNav);
 
-		// color input - change iris color/redraw...
-		document.querySelector('#controller input').addEventListener('change',
-			CSC1840.handleColor, false);
+		// filters input - change iris color/redraw...
+		document.querySelector('#controller').addEventListener('change',
+			CSC1840.handleController, true);
 			
 		// window resize - redraw canvas...
 		//window.onresize = CSC1840.handleResize;
@@ -275,11 +143,7 @@ var CSC1840 = ( function() {
 		appendImages: appendImages,
 		handleNav: handleNav,
 		handleResize: handleResize,
-		drawRoi: drawRoi,
-		drawIris: drawIris,
-		drawImage: drawImage,
-		handleColor: handleColor,
-		onScreenImage: onScreenImage
+		handleController: handleController
 	};
 }());
 

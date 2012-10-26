@@ -108,14 +108,22 @@ section{
 		-webkit-justify-content: center;
 		display: -webkit-flex;
 		-webkit-flex-flow: column;
+		position:relative;
 	}
-	#controller{
-		padding-top: 10px;
+	#stage canvas{
+		position:absolute;
+		top: 0;
+		left: 0;
 	}
-	#controller label{
-		display:block;
-		text-align: center;
+	/* This layer has the filtered image */
+	#layer0{
+		z-index:1;
 	}
+	/* This layer has the colored image (cutted or not) */
+	#layer1{
+		z-index:2;
+	}
+	
 aside{
 	-webkit-order:0;
 	-webkit-flex: 1;
@@ -140,7 +148,38 @@ aside{
 		color: green;
 		text-shadow: 1px 1px #fff;
 	}
-
+	#controller{
+		padding: 10px;
+		display: -webkit-flex;
+		-webkit-flex-direction: column;
+	}
+		#controller div{
+			-webkit-flex: 1;
+		}
+		#controller label{
+			display:block;
+			width:100%;
+		}
+		#controller input{
+			width:100%;
+		}
+		#controller input[type='range'] {
+			-webkit-appearance: none;
+			height: 8px;
+			margin: 10px 0 10px 0;
+			background-image: -webkit-linear-gradient(top, rgba(0,0,0,0.2), rgba(0,0,0,0.2));
+		}
+		#controller input[type='range']::-webkit-slider-thumb{
+			-webkit-appearance:none;
+			width:20px;
+			height:8px;
+			color:#555;
+			background-image:-webkit-gradient(linear, left top, left bottom, color-stop(0, #888), color-stop(1, #888) );
+		}
+	#message {
+		padding-top:10px;
+		padding-bottom:10px;
+	}
 /* Styling webkit components */
 /* Scrollbar */
 body ::-webkit-scrollbar {
