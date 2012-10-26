@@ -4,10 +4,11 @@
  * This file contains helpers, managers, utilities used in the application.
  *
  *	- ServerApi
- *	- Pusherpipe (not the real-deal!)
+ *	- Pusherpipe (not the real-deal! just one-way, server sent events...)
+ *	- CanvasDO
  *	- Logger
  *	- ErrorSink
- *
+ *	
  * @author daniel@bitbay.org
  * 
  */
@@ -40,9 +41,11 @@ var ServerApi = (function() {
 		var url = "/calculate/?src=" + escape(src);
 		xhr = new XMLHttpRequest();
 		xhr.open('POST', url, true);
+		// sending back channel session variable for authentification
 		xhr.setRequestHeader('X-Visitor', SESSION_VARS.channel);
 		xhr.send();
 	}
+	
 	/**
 	 * HandleFilesUpload
 	 *
@@ -105,7 +108,7 @@ var ServerApi = (function() {
 /**
  * Pusherpipe object
  *
- * The pusher using websockets for bi-directional server-client communication.
+ * The pusher using websockets for server-client communication.
  */
 var Pusherpipe = (function(){
 	var channel;
@@ -115,10 +118,12 @@ var Pusherpipe = (function(){
 	 * Registering channel event binders
 	 *
 	 */
+	// handshake done
 	var greetHandler = function (data) {
 		Logger.log(data.msg, 'server');
 	};
 	
+	// uploaded image ready to use
 	var recieveUploadedImages = function (images){
 		Logger.log(images.msg, 'server');
 		CSC1840.appendImages(images.data);
@@ -128,7 +133,7 @@ var Pusherpipe = (function(){
 	/**
 	 * Initialize the Pusher instance, and setup channel bindings
 	 *
-	 * Probably could be better organized as in terms of bind/unbind based on
+	 * Probably could be better organized as in terms of bind/unbind, based on
 	 * current application state, but for now it sets up all.
 	 *
 	 * With the new pipes api of pusher, no need for the REST style
@@ -136,14 +141,15 @@ var Pusherpipe = (function(){
 	 * See: http://pusher.com/docs/pipe
 	 */
 	var init = function(){
+		// uncomment to recieve debugging logs from the push.com server
 		/*
 		Pusher.log = function(message) {
-	  	if (window.console && window.console.log) {
-			window.console.log(message);
-		  }
+			if (window.console && window.console.log) {
+				window.console.log(message);
+			}
 		};
 		*/
-		//Pusher.host = "ws.darling.pusher.com";
+		
 		// set auth endpoint to the back-end route
         Pusher.channel_auth_endpoint = SESSION_VARS.authEndPoint;
         
@@ -189,6 +195,14 @@ var Pusherpipe = (function(){
 			Logger.log(data.msg, 'opencv');
 		});
 		
+		this.channel.bind('opencv-result', function(data){
+			if( data.roi ){
+				CanvasDO.eyesROI = data.roi.eyes;
+				CSC1840.drawRoi();
+			}
+			if( data.iris ) CSC1840.drawIris(data.iris);
+		});
+		
 		/* Pusher.com debug messages */
 		
 		this.pusher.connection.bind('connecting', function() {
@@ -212,7 +226,8 @@ var Pusherpipe = (function(){
 				// if the error is temporary...
 				Logger.log('Retrying in 2 seconds...', 'pusher');
 				setTimeout( function(){
-					this.channel = this.pusher.subscribe('presence-'+SESSION_VARS.channel);
+					this.channel = this.pusher
+						.subscribe('presence-'+SESSION_VARS.channel);
 				}, 2000);	
 			}
 		});
@@ -234,7 +249,75 @@ var Pusherpipe = (function(){
 		recieveUploadedImages: recieveUploadedImages
 	}
 })();
-
+/**
+ * CanvasDO 
+ *
+ * Data Object (okai, with some loader logic to cache) for the canvas, with
+ * R/W members the drawing function needs to redraw the actual stage at any
+ * given moment (window.onresize, etc)
+ */
+var CanvasDO = (function(){
+	this.imageURL = '';
+	this.eyesROI = [];
+	this.irises = [];
+	this.pupils = [];
+	
+	// calculate 'letterbox' format to fit-scale the image in the 'stage'
+	// container
+	this.correctedTransform = function(rect, image){
+		var iW = image.width;
+		var iH = image.height;
+		var cW = rect.width;
+		var cH = rect.height;
+		var cR = cW / cH;
+		var iR = iW / iH;
+		
+		var width;
+		var height;
+		var scale;
+		var x,y;
+		if( cR < iR ){
+			// calc width, multiply height
+			if( iW > cW ){
+				// scale down width...
+				scale = cW/iW;
+				width = cW;
+				height = cW/iR;
+				x = 0;
+				y = (cH-height)*0.5;
+			}else{
+				// center only
+				scale = 1;
+				width = iW;
+				height = iH;
+				x = (cW-width)*0.5;
+				y = (cH-height)*0.5;
+			}
+		}
+		else{
+			// calc height, multiply width
+			if( iH > cH ){
+				// scale down height...
+				scale = cH/iH;
+				width = cH*iR;
+				height = cH;
+				x = (cW-width)*0.5;
+				y = 0;
+			}else{
+				// center only
+				scale = 1;
+				width = iW;
+				height = iH;
+				x = (cW-width)*0.5;
+				y = (cH-height)*0.5;
+			}
+		}
+		return {x:x, y:y, width:width, height:height, scale:scale};
+	};
+	
+	return this;
+})();
+ 
 /**
  * Logger
  *
@@ -257,6 +340,8 @@ var Logger = (function() {
 		var time = new Date();
 		var UTCstring = time.toUTCString();
 		var sender = typeof src === 'undefined' ? 'anon' : src;
+
+		// messages are colored with CSS based on sender.
 		logs[ UTCstring ] = {
 			'sender': sender,
 			'message': msg
@@ -273,6 +358,7 @@ var Logger = (function() {
 		// store the message span for later reference
 		spans.push(span);
 		
+		// let the message be visible for defaultTimeout seconds
 		setTimeout(function(){
 			var span = spans.shift();
 			span.parentNode.removeChild(span);
@@ -289,7 +375,7 @@ var Logger = (function() {
 /**
  * Global error handler.
  * 
- * Supresses known errors, passes on unknown errors
+ * Supresses known errors - passes on unknown errors
  * to default browser error handling.
  */
 var ErrorSink = ( function(){

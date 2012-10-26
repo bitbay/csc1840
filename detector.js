@@ -79,7 +79,8 @@ module.exports = function(){
 	 * drawHistogram
 	 *
 	 * for debug purposes only - visualizes a histogram, with optional
-	 * values to highlight
+	 * values to highlight, obviously on a headless server this is useless,if
+	 * not harmful...
 	 *
 	 * @param {Object}	the histogram object to draw
 	 * @param {int}	optional value to highlight
@@ -131,6 +132,7 @@ module.exports = function(){
 	 * @return {Object} array of the ocurrance of each value
 	 */
 	this.calcHist = function(input){
+		process.send({info:'Calculating histogram'});
 		console.log('calculating histogram');
 		var histData = [];
 
@@ -166,6 +168,7 @@ module.exports = function(){
 	 * @see http://www.labbookpages.co.uk/software/imgProc/otsuThreshold.html
 	 */
 	this.getOtsuThreshold = function(histogram){
+		process.send({info:'Calculating Otsu threshold of image'});
 		var sum = 0.0;	// Number
 		var totalPixels = 0;
 		
@@ -213,6 +216,8 @@ module.exports = function(){
 	 * @return
 	 */
 	 this.processImage = function(src){
+	 	process.send({info:'Processing the image...'});
+	 	
 	 	this.inputImage = new cv.Mat(src.size, src.type);
 	 	src.copyTo(this.inputImage);
 	 	
@@ -271,6 +276,7 @@ module.exports = function(){
 	 * @return {Object} the detected faces
 	 */
 	this.detectEyes = function(haar){
+		process.send({info:'Detecting eyes...'});
 		if (!this.cascade.load(haar)) {
 		  console.log('Cascade load failed');
 		}
@@ -289,6 +295,7 @@ module.exports = function(){
 		  height: 20
 		});
 		console.log('eyes found:' + eyes.length);
+		process.send({info:(eyes.length+' eye(s) found.')});
 		return eyes;
 	}
 
@@ -308,6 +315,7 @@ module.exports = function(){
 	 * @return {Object} an Object containing the results
 	 */
 	this.getROI = function(src){
+		process.send({info:'Calculating ROIs'});
 		// prepare image for detection
 		this.processImage(src);
 		
@@ -334,11 +342,14 @@ module.exports = function(){
 	 * @return {}
 	 */
 	 this.getIris = function(){
+	 	process.send({info:'Segmenting the iris'});
 	 	if( this.ROI.eyes.length === 0 ){
 	 		console.log('no eyes previously detected!')
 	 		return;
 	 	}
-
+	 	
+	 	// store the results..
+		var result = [];
 		var i = 0;
 		for (i; i < this.ROI.eyes.length; ++i){
 			// create a region image of the eye ROI
@@ -501,89 +512,13 @@ module.exports = function(){
 			);
 
 			console.log('circles found:'+circles.length);
-			/*
-			var inputRegion = new cv.Mat(this.inputImage, this.ROI.eyes[i]);
-			var debugImage = inputRegion;
-			if( debugImage.type === cv.CV_8UC1)
-				cv.cvtColor(debugImage, debugImage, cv.CV_GRAY2RGB);
-			if( circles.length > 0 ){
-				var j = 0;
-				//for(j; j<circles.length; ++j){
-				for(j; j<5; ++j){
-					// scalars are given in BGR format...
-					var color;
-					switch(j){
-						case 0 :
-							color = [0,0,255];
-							break;
-						case 1 :
-							color = [0,255,0];
-							break;
-						case 2 :
-							color = [255,0,0];
-							break;
-						default :
-							color = [0,128,128];
-							break;
-					}
-					cv.circle(
-						debugImage,
-						//this.inputImage,
-						//{ x: parseInt(circles[j][0])+this.ROI.eyes[i].x, y: parseInt(circles[j][1])+this.ROI.eyes[i].y},
-						{ x: parseInt(circles[j][0]), y: parseInt(circles[j][1])},
-						parseInt(circles[j][2]),
-						color,
-						1,
-						8);
-					
-				}
-			}
-		 	
-		 	var center = parseInt(eyeRegion.cols*0.5);
-		 	cv.line( debugImage,
-				{ 	x:hough_min_r+center,
-					y:eyeRegion.rows
-				},
-				{	x:hough_min_r+center,
-					y:0
-				},
-				[0, 255, 255],
-				1, 8, 0
-			);
-		 	cv.line( debugImage,
-				{ 	x:center-hough_min_r,
-					y:eyeRegion.rows
-				},
-				{	x:center-hough_min_r,
-					y:0
-				},
-				[0, 255, 255],
-				1, 8, 0
-			);
+			process.send({info:('Hough found '+circles.length+' circle(s)')});
+			// first ten circles...
+			result.push( { circles: circles.slice(0,5)} );
 			
-			// debug max diameter
-			cv.line( debugImage,
-				{ 	x:hough_max_r+center,
-					y:eyeRegion.rows
-				},
-				{	x:hough_max_r+center,
-					y:0
-				},
-				[255, 255, 0],
-				1, 8, 0
-			);
-		 	cv.line( debugImage,
-				{ 	x:center-hough_max_r,
-					y:eyeRegion.rows
-				},
-				{	x:center-hough_max_r,
-					y:0
-				},
-				[255, 255, 0],
-				1, 8, 0
-			);
-			*/		 	
 		}
+		return result;
+		
 	 }
 	 
 	/**

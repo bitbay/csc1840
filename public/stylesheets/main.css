@@ -1,5 +1,11 @@
-* { transition: all 2s; }
-
+/**
+ * Cloudspokes challenge #1840 - style definitions
+ * 
+ * Only -webkit vendor uses, too much effort to make it look the 'same' for all!
+ *
+ * @author daniel@bitbay.org
+ */
+ 
 html {
 	height:100%;
 }
@@ -11,12 +17,7 @@ body {
 	font-family: 'Open Sans', arial, sans-serif;
 	font-weight: 300;
 	-webkit-font-smoothing: antialiased;
-	background: -webkit-gradient(radial, center center, 500, center center, 1400, from(rgba(0,0,0,0)), to(rgba(0,0,0,0.6))) #fff;
-	/*background: -moz-radial-gradient(farthest-side, rgba(0,0,0,0) 90%, rgba(0,0,0,0.2) 150%) #F2F2F2;*/
 	background: -webkit-radial-gradient(farthest-side, rgba(0,0,0,0) 90%, rgba(0,0,0,0.2) 150%) #F2F2F2;
-	/*background: -ms-radial-gradient(farthest-side, rgba(0,0,0,0) 90%, rgba(0,0,0,0.2) 150%) #F2F2F2;
-	background: -o-radial-gradient(farthest-side, rgba(0,0,0,0) 90%, rgba(0,0,0,0.2) 150%) #F2F2F2;
-	background: radial-gradient(farthest-side, rgba(0,0,0,0) 90%, rgba(0,0,0,0.2) 150%) #F2F2F2;*/
 	box-sizing: border-box;
 	height:100%;
 	display: -webkit-flex;
@@ -63,11 +64,11 @@ nav{
 	overflow-x:hidden;
 	-webkit-flex-flow:column;
 	-webkit-align-items:center;
+	padding:10px 0px 10px 10px;
 }
 
 figure{
 	margin:10px;
-	cursor:pointer;
 }
 	figure img{
 		-webkit-filter: grayscale(100%);
@@ -76,20 +77,16 @@ figure{
 		height:80px;
 		padding:3px;
 		box-shadow: 0 0 20px rgba(0, 0, 0, 0.4), 0 0 2px black;
-	}
-	figure img{
-		-webkit-filter: grayscale(100%);
-		background-color:white;
-		width:100px;
-		height:80px;
-		padding:3px;
-		box-shadow: 0 0 20px rgba(0, 0, 0, 0.4), 0 0 2px black;
+		-webkit-transition:0.6s all;
+		-webkit-background-size: cover;
 	}
 	figure img:hover:not(.selected){
 		-webkit-filter:none;
+		cursor:pointer;
 	}
 	figure img:active:not(.selected){
 		-webkit-filter:none;
+		cursor:pointer;
 	}
 	.selected{
 		-webkit-filter:none;
@@ -100,16 +97,25 @@ section{
 	-webkit-flex: 3;
 	background-color:white;
 	box-shadow: 0 0 60px rgba(0, 0, 0, 0.3), 0 0 40px rgba(0, 0, 0, 0.1) inset, 0 0 15px #CCC;
+	display: -webkit-flex;
+	-webkit-flex-flow: column;
+	-webkit-align-items: center;
+	padding: 10px;
 }
-input[type=color]{
-	right: 0;
-	left: 0;
-	margin: auto;
-	width:100px;
-	bottom: 0px;
-	display: block;
-	position: absolute;
-}
+	#stage{
+		-webkit-flex:1;
+		-webkit-align-items: center;
+		-webkit-justify-content: center;
+		display: -webkit-flex;
+		-webkit-flex-flow: column;
+	}
+	#controller{
+		padding-top: 10px;
+	}
+	#controller label{
+		display:block;
+		text-align: center;
+	}
 aside{
 	-webkit-order:0;
 	-webkit-flex: 1;
@@ -124,9 +130,15 @@ aside{
 	
 	aside .anon{
 		color: #444;
+		text-shadow: 1px 1px #fff;
 	}
 	aside .server{
 		color: red;
+		text-shadow: 1px 1px #fff;
+	}
+	aside .opencv{
+		color: green;
+		text-shadow: 1px 1px #fff;
 	}
 
 /* Styling webkit components */
@@ -178,7 +190,6 @@ form{
 .fubutton:before {
 	content: 'Select files';
 	display: inline-block;
-	/*background: -webkit-linear-gradient(top, #F9F9F9, #E3E3E3);*/
 	background: transparent;
 	border: 1px dashed #888;
 	padding: 33px 14px;
@@ -195,30 +206,8 @@ form{
 	color:black;
 }
 .fubutton:active:before {
-	/*background: -webkit-linear-gradient(top, #E3E3E3, #F9F9F9);*/
 	border: 1px solid #888;
 }
-
-/* SFX */
-/* credit http://lea.verou.me/2012/04/background-attachment-local/ */
-.scrollbox {
-	overflow: auto;
-
-	background:
-		/* Shadow covers */
-		linear-gradient(white 30%, rgba(255,255,255,0)),
-		linear-gradient(rgba(255,255,255,0), white 70%) 0 100%,
-		
-		/* Shadows */
-		radial-gradient(50% 0, farthest-side, rgba(0,0,0,.2), rgba(0,0,0,0)),
-		radial-gradient(50% 100%,farthest-side, rgba(0,0,0,.2), rgba(0,0,0,0)) 0 100%;
-	background-repeat: no-repeat;
-	background-size: 100% 40px, 100% 40px, 100% 14px, 100% 14px;
-	
-	/* Opera doesn't support this in the shorthand */
-	background-attachment: local, local, scroll, scroll;
-}
-
 
 @media all and (max-width: 400px) {
 	body>div{
@@ -239,9 +228,4 @@ form{
     section{
     	-webkit-order:0;
     }
-    /*
-    figure{
-    	-webkit-flex:1;
-    }
-    */
 }

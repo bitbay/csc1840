@@ -1,10 +1,14 @@
 /**
+ * Cloudspokes challenge #1840 - session handler middleware
+ * 
  * session.js
  * 
  * Middleware for simple session management, keeping track of the files uploaded
  * by the user.
  *
  * Uses mongoDB as database and mongojs as driver.
+ *
+ * Uses node JS child_processes to make use of scalable, cloud-based applications 
  *
  * @author	daniel@bitbay.org
  * @version
@@ -21,6 +25,7 @@ var db = require('mongojs').connect(databaseUri, collections),
 	q = require('q'),
 	pusher = require('./pusher.js'),
 	opencvMain = require('./opencv.js'),
+	cp = require('child_process'),
 	path = require('path');
 
 /**
@@ -247,6 +252,7 @@ exports.fileupload = function(req, res){
  */
 exports.opencv = function(req, res){
 	var src = req.query.src;
+	
 	// calculate the absolute path of the image
 	var fileName = path.basename(src);
 	var absSrc = path.resolve('./public/data/upload/' + fileName);
@@ -254,22 +260,33 @@ exports.opencv = function(req, res){
 	var visitor = req.get('X-Visitor');
 	var channel = 'private-'+visitor;
 	
-	/**
-	 * now THIS would be an ideal place to fork a new child_process, to use the
-	 * power of scalable multi-threaded environment for cloud-computing, but
-	 * unfortunatly on heroku for free it can't be done...
-	 */
-	/*
-	process.nextTick(function(){pusher.trigger( channel, 'server-info', {msg:'Loading OpenCV'})});
-	process.nextTick(function(){require('./opencv.js').opencv(absSrc, channel)});
-	*/
-	pusher.trigger( channel, 'server-info', {msg:'Loading OpenCV'});
-	var cp = require('child_process');
-	var n = cp.fork(__dirname + '/opencv_cp.js');
+	// now THIS is where the magic starts...
+	// non-blocking child processes!
+	pusher.trigger( channel, 'server-info', {msg:'Forking OpenCV...'});
+	var openCV_fork = cp.fork(__dirname + '/opencv_cp.js');
+	
+	var clicker = setInterval(function(){
+		pusher.trigger( channel, 'server-info',	{msg:'Working...'});
+	},3500);
+	
+	// sending notifications to the client...
+	openCV_fork.on('message', function(m) {
+		console.log('SESSION got message:', m);
+		if( m.info ) pusher.trigger( channel, 'opencv-info', {msg:m.info});
+		if( m.roi ) pusher.trigger( channel, 'opencv-result', {roi:m.roi});
+		if( m.iris ) {
+			clearInterval(clicker);
+			pusher.trigger( channel, 'opencv-result', {iris:m.iris});
+			// make sure to sigkill the forked process after it is done
+			openCV_fork.disconnect();
+		};
+	});
+	
+	//start the heavy calculation in a child process
+	// this way the server will still be able to handle other requests.
+	openCV_fork.send({ src: absSrc, channel:channel});
 
-	n.send({ src: absSrc, channel:channel});
-	
-	
+	// errors are handled elsewhere...
 	res.status(200).end();
 }
 

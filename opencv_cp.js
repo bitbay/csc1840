@@ -5,7 +5,7 @@
  * Exposes very few methods, as the work is done by the "detector" class.
  *
  * @author daniel@bitbay.org
- * 
+ * @version
  */
 var fs = require('fs'),
 	path = require('path'),
@@ -38,22 +38,22 @@ var inputImage = {
 function init( data ){
 		var src = data.src,
 			channel = data.channel;
-//	if(fs.existsSync(path.join(__dirname, '/data/upload/woman.jpg'))){
-		console.log('reading image...');
-		console.log(channel);
+
 		pusher.trigger( channel, 'opencv-info', {msg:'Reading image from disk'});
 
 		// read img
 		inputImage.src = src;
 		inputImage.mat = cv.imread(inputImage.src, 1);
 		
-		pusher.trigger( channel, 'opencv-info', {msg:'Reading image from disk'});
+		pusher.trigger( channel, 'opencv-info', {msg:'Image reading done'});
 		
 		var detector = new Detector();
-		var results = detector.getROI(inputImage.mat);
-
+		var roi = detector.getROI(inputImage.mat);
+		process.send({roi:roi});
+		
 		//debugResultsROI(results);
-		detector.getIris();
+		var iris = detector.getIris();
+		process.send({ iris:iris });
 //	}
 };
 
@@ -87,5 +87,4 @@ function debugResultsROI(ROI){
 process.on('message', function(m) {
   console.log('CHILD got message:');
   init(m);
-  
 });

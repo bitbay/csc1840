@@ -1,8 +1,15 @@
 /**
+ * Cloudspokes challenge #1840 - back-end server
+ * 
  * web.js - Web server with routing and RESTful API
  *
- * Uses express for the main framework, mongodb for database.
- *
+ * Features:
+ *	- express for the main framework
+ *	- mongodb for database
+ *	- pusher for server sent events
+ *	- opencv (special build for heroku, compiled with vulcan), non-blocking,
+ *	  scalable, forked child-processes
+ * 
  * @author	daniel@bitbay.org
  * @version
  */
@@ -37,6 +44,20 @@ app.set('uploads', __dirname + '/public/data/upload');
 app.set('view cache', false);
 //app.set('source', __dirname + '/source');
 
+/**
+ * mustKillCache middleware
+ *
+ * needed, to not let the client cache REST calls
+ */
+var mustKillCache = function (req, res, next) {
+	if (req.url === '/') {
+		res.header("Cache-Control", "no-cache, no-store, must-revalidate");
+		res.header("Pragma", "no-cache");
+		res.header("Expires", 0);
+	}
+	next();
+}
+
 /* MiddleWare stack */
 
 app.configure(function(){
@@ -53,16 +74,10 @@ app.configure(function(){
 					httpOnly: true,
 					expires: false }
 	}));
+	
 	/* No Cache Middleware for the API */
-	app.use(function (req, res, next) {
-		if (req.url === '/') {
-			res.header("Cache-Control", "no-cache, no-store, must-revalidate");
-			res.header("Pragma", "no-cache");
-			res.header("Expires", 0);
-		}
-		
-		next();
-	});
+	app.use(mustKillCache);
+	
 	app.use(express.static(path.join(__dirname, '/public')));
 	app.use(app.router);
 	app.use(function(err, req, res, next){

@@ -16,6 +16,7 @@
 			Bleeding edge
 			...no boilerplate, no cross-browser support this time, just
 			plain future(chrome) awesomeness...
+			!! THIS MEANS TESTED/CREATED ON CHROME +21 !!
 	-->
     <body>
     	<header>
@@ -31,8 +32,12 @@
 				</form>
 			</nav>
 			<section>
-				<div>
-					<label for="color">Select a color</label><input type="color" name="color" style="width:150px">
+				<div id="stage">
+					<canvas>Your browser doesn't support canvas - Youu should not see this ugly message...</canvas>
+				</div>
+				<div id="controller">
+					<label for="color">Select a color</label>
+					<input type="color" name="color" style="width:150px">
 				<div>
 			</section>
 			<aside>
