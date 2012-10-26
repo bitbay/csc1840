@@ -277,7 +277,7 @@ exports.opencv = function(req, res){
 		if( m.iris ) {
 			clearInterval(clicker);
 			pusher.trigger( channel, 'opencv-result', {iris:m.iris});
-			// make sure to sigkill the forked process after it is done
+			// make sure to kill [SIGTERM:15] the forked process after it is done
 			openCV_fork.disconnect();
 		};
 	});

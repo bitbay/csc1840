@@ -196,11 +196,15 @@ var Pusherpipe = (function(){
 		});
 		
 		this.channel.bind('opencv-result', function(data){
+			console.log(data);
 			if( data.roi ){
 				CanvasDO.eyesROI = data.roi.eyes;
 				CSC1840.drawRoi();
 			}
-			if( data.iris ) CSC1840.drawIris(data.iris);
+			if( data.iris ){
+				CanvasDO.irises = data.iris;
+				CSC1840.drawIris();
+			}
 		});
 		
 		/* Pusher.com debug messages */
@@ -249,6 +253,7 @@ var Pusherpipe = (function(){
 		recieveUploadedImages: recieveUploadedImages
 	}
 })();
+
 /**
  * CanvasDO 
  *
@@ -261,16 +266,27 @@ var CanvasDO = (function(){
 	this.eyesROI = [];
 	this.irises = [];
 	this.pupils = [];
+	this.actualScale;
+	this.originalImageRect = {};
 	
-	// calculate 'letterbox' format to fit-scale the image in the 'stage'
-	// container
+	/* calculate 'letterbox' format to fit-scale the image in the 'stage'
+	 * container
+	 *
+	 * @param {object}	width/height of the 'outer' container - bounds
+	 *					(containing the canvas)
+	 * @param {object}	optional object (img || {}) with width/height fields,
+	 * 					the 'inner' component to resize
+	 */
 	this.correctedTransform = function(rect, image){
+		// save the original rect of image dimensions
+		this.originalImageRect = { width: image.width, height: image.height };
+		
 		var iW = image.width;
 		var iH = image.height;
 		var cW = rect.width;
 		var cH = rect.height;
-		var cR = cW / cH;
-		var iR = iW / iH;
+		var cR = cW / cH;		// container AspectRatio
+		var iR = iW / iH;		// image AspectRatio
 		
 		var width;
 		var height;
@@ -312,6 +328,7 @@ var CanvasDO = (function(){
 				y = (cH-height)*0.5;
 			}
 		}
+		this.actualScale = scale;
 		return {x:x, y:y, width:width, height:height, scale:scale};
 	};
 	

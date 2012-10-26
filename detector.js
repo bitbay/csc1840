@@ -510,12 +510,67 @@ module.exports = function(){
 				hough_min_r,					// min radius
 				hough_max_r						// max radius
 			);
-
+			
+			
+			var inputRegion = new cv.Mat(this.inputImage, this.ROI.eyes[i]);
+			var debugImage = inputRegion;
+			if( debugImage.type === cv.CV_8UC1)
+				cv.cvtColor(debugImage, debugImage, cv.CV_GRAY2RGB);
+			if( circles.length > 0 ){
+				var j = 0;
+//				for(j; j<circles.length; ++j){
+				for(j; j<5; ++j){
+					// scalars are given in BGR format...
+					var color;
+					switch(j){
+						case 0 :
+							color = [0,0,255];
+							break;
+						case 1 :
+							color = [0,255,0];
+							break;
+						case 2 :
+							color = [255,0,0];
+							break;
+						default :
+							color = [0,128,128];
+							break;
+					}
+					cv.circle(
+						debugImage,
+						//this.inputImage,
+						//{ x: parseInt(circles[j][0])+this.ROI.eyes[i].x, y: parseInt(circles[j][1])+this.ROI.eyes[i].y},
+						{ x: parseInt(circles[j][0]), y: parseInt(circles[j][1])},
+						parseInt(circles[j][2]),
+						color,
+						1,
+						8);
+					
+				}
+				//cv.imwrite('./data/output/houghCircles.jpg', this.inputImage);
+				cv.imwrite('./data/output/houghcircles_'+i+'.jpg', debugImage);
+				if( this.DEBUG ){
+				 	cv.imshow("DEBUG1", debugImage);
+				 	cv.waitKey();
+				 }
+			}
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
 			console.log('circles found:'+circles.length);
 			process.send({info:('Hough found '+circles.length+' circle(s)')});
 			// first ten circles...
-			result.push( { circles: circles.slice(0,5)} );
-			
+			result.push( { candidates: circles.slice(0,5)} );
 		}
 		return result;
 		

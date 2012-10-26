@@ -52,6 +52,7 @@ var CSC1840 = ( function() {
 	 		evt.target.className = 'selected';
 	 		ServerApi.calculateIris(evt.target.src);
 	 		CanvasDO.imageURL = evt.target.src;
+	 		CanvasDO.eyesROI = [];
 	 		clearCanvas();
 	 		drawImage();
 	 	}
@@ -87,12 +88,12 @@ var CSC1840 = ( function() {
 		for(i; i<images.length; ++i){
 			var fig = document.createElement('figure');
 			var img = document.createElement('img');
-			var title = images[i].title == undefined ? 'User-'+i : images[i].title;
+			var title = !images[i].title ? 'User_'+i : images[i].title;
 			img.src = './data/upload/' + images[i].url;
 			img.alt = title;
 			
 			var figCap = document.createElement('figcaption');
-			var text = document.createTextNode(images[i].title);
+			var text = document.createTextNode(title);
 			figCap.appendChild(text);
 			fig.appendChild(img);
 			fig.appendChild(figCap);
@@ -137,7 +138,7 @@ var CSC1840 = ( function() {
 		
 		var img = new Image();
 		
-		img.onload = function(){
+		img.onload = function(){	
 			//getStyle(canvas.parentNode, 'clientWidth');
 			var padding = getStyle(canvas.parentNode.parentNode, 'padding');
 			padding = parseInt(padding);
@@ -153,9 +154,14 @@ var CSC1840 = ( function() {
 							cT.width, cT.height);
 			
 			//canvas.setAttribute('style', 'position:relative; left:'+cT.x+'px; top:'+cT.y+'px;' );
+			// check if results correspond to the actual on-screen-image
+			if( CanvasDO.imageURL == img.src ) {
+			  	if( CanvasDO.eyesROI ) drawRoi();
+			  	if( CanvasDO.irises ) drawIris();
+			}
 		};
 		
-		img.src = CanvasDO.imageURL;
+		img.src = CSC1840.onScreenImage = CanvasDO.imageURL;
 		
 	}
 	
@@ -165,8 +171,24 @@ var CSC1840 = ( function() {
 	 * debug feature, that displays the detected Regions of interest (eyes)
 	 */
 	function drawRoi(){
-		console.log(CanvasDO.roi);
-	}
+		if( CSC1840.onScreenImage !== CanvasDO.imageURL ) return;	
+		// getting scale modifier
+		var sc = CanvasDO.actualScale;
+		var canvas = document.querySelector('canvas');
+		var ctx = canvas.getContext('2d');
+		ctx.strokeStyle = "#0000FF";
+		ctx.lineWidth = 2;
+		function debugRoi(roi, index, array) {
+			Logger.log( 'Drawing rect[' + parseInt(roi.width*sc) +
+						',' + parseInt(roi.height*sc) +
+						'] @ x,y[' + parseInt(roi.x*sc) + 
+						',' + parseInt(roi.y*sc) + ']', 'canvas' );
+			ctx.strokeRect(	roi.x*sc,roi.y*sc,
+							roi.width*sc,roi.height*sc );
+		}
+		CanvasDO.eyesROI.forEach(debugRoi);
+		
+	};
 	
 	/**
 	 * drawIris
@@ -176,8 +198,39 @@ var CSC1840 = ( function() {
 	 * @param {color}	optional, selected color
 	 */
 	function drawIris(){
-		console.log(CanvasDO.iris);
-	}
+		// getting canvas-scale modifier
+		var sc = CanvasDO.actualScale;
+		var canvas = document.querySelector('canvas');
+		var color = document.querySelector('#controller>input').value;
+		
+		function debugIris(iris, index, array) {
+			if ( iris.candidates.length < 1 ) return;
+			var ctx = canvas.getContext('2d');
+			ctx.strokeStyle = color;
+			ctx.strokeStyle = color;
+			ctx.lineWidth = 1;
+			// regionOffset
+			var rO = { x: CanvasDO.eyesROI[index].x*sc,
+						y: CanvasDO.eyesROI[index].y*sc};
+			var i = 0;
+			// for each eye candidate...
+			for(i; i<iris.candidates.length; ++i){
+				console.log('ro:'+rO);
+				Logger.log( 'Drawing circle.r:' + parseInt(iris.candidates[i][2]*sc) +
+							'@ x,y[' + parseInt(iris.candidates[i][0]*sc) + 
+							',' + parseInt(iris.candidates[i][1]*sc) + ']' , 'canvas' );
+				ctx.beginPath();
+				ctx.arc(parseInt(iris.candidates[i][0]*sc+rO.x),
+						parseInt(iris.candidates[i][1]*sc+rO.y),
+						parseInt(iris.candidates[i][2]*sc),
+						0,Math.PI*2,false); // Outer circle
+				ctx.stroke();
+				//ctx.fill();
+			}
+		}
+		
+		CanvasDO.irises.forEach(debugIris);
+	};
 	
 	/* MAIN */
 	
@@ -213,7 +266,9 @@ var CSC1840 = ( function() {
 		handleNav: handleNav,
 		handleResize: handleResize,
 		drawRoi: drawRoi,
-		drawIris: drawIris
+		drawIris: drawIris,
+		drawImage: drawImage,
+		onScreenImage: onScreenImage
 	};
 }());
 
