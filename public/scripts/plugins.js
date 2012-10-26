@@ -53,6 +53,7 @@ var ServerApi = (function() {
 	 */
 	 function handleFilesUpload( evt ){
 	 	var file = evt.target.files[0]; // FileList object
+		if( !file ) return false;
 		
 		// limit the file size to 5 megabytes
 	 	if( file.size > 5242880 ){
@@ -196,14 +197,13 @@ var Pusherpipe = (function(){
 		});
 		
 		this.channel.bind('opencv-result', function(data){
-			console.log(data);
 			if( data.roi ){
 				CanvasDO.eyesROI = data.roi.eyes;
 				CSC1840.drawRoi();
 			}
 			if( data.iris ){
 				CanvasDO.irises = data.iris;
-				CSC1840.drawIris();
+				CSC1840.drawImage();
 			}
 		});
 		

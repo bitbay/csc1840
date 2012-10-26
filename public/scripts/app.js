@@ -52,7 +52,11 @@ var CSC1840 = ( function() {
 	 		evt.target.className = 'selected';
 	 		ServerApi.calculateIris(evt.target.src);
 	 		CanvasDO.imageURL = evt.target.src;
+
+	 		// reset previous results
 	 		CanvasDO.eyesROI = [];
+			CanvasDO.irises = [];
+
 	 		clearCanvas();
 	 		drawImage();
 	 	}
@@ -148,11 +152,11 @@ var CSC1840 = ( function() {
 			canvas.width = cT.width;
 			canvas.height = cT.height;
 			var ctx = canvas.getContext('2d');
-			
+			ctx.save();
 			ctx.drawImage(	img,
 							0, 0,
 							cT.width, cT.height);
-			
+			ctx.restore();
 			//canvas.setAttribute('style', 'position:relative; left:'+cT.x+'px; top:'+cT.y+'px;' );
 			// check if results correspond to the actual on-screen-image
 			if( CanvasDO.imageURL == img.src ) {
@@ -171,18 +175,17 @@ var CSC1840 = ( function() {
 	 * debug feature, that displays the detected Regions of interest (eyes)
 	 */
 	function drawRoi(){
-		if( CSC1840.onScreenImage !== CanvasDO.imageURL ) return;	
+		if( CSC1840.onScreenImage !== CanvasDO.imageURL ) return;
+		// if drawing the iris too, not the debug regions...
+		if( CanvasDO.irises.length !== 0 ) return;
+		
 		// getting scale modifier
 		var sc = CanvasDO.actualScale;
 		var canvas = document.querySelector('canvas');
 		var ctx = canvas.getContext('2d');
-		ctx.strokeStyle = "#0000FF";
-		ctx.lineWidth = 2;
+		ctx.strokeStyle = "#F9F9F9";
+		ctx.lineWidth = 1;
 		function debugRoi(roi, index, array) {
-			Logger.log( 'Drawing rect[' + parseInt(roi.width*sc) +
-						',' + parseInt(roi.height*sc) +
-						'] @ x,y[' + parseInt(roi.x*sc) + 
-						',' + parseInt(roi.y*sc) + ']', 'canvas' );
 			ctx.strokeRect(	roi.x*sc,roi.y*sc,
 							roi.width*sc,roi.height*sc );
 		}
@@ -204,7 +207,7 @@ var CSC1840 = ( function() {
 		var color = document.querySelector('#controller>input').value;
 		
 		function debugIris(iris, index, array) {
-			if ( iris.candidates.length < 1 ) return;
+			if ( iris.length < 1 ) return;
 			var ctx = canvas.getContext('2d');
 			ctx.strokeStyle = color;
 			ctx.strokeStyle = color;
@@ -212,25 +215,28 @@ var CSC1840 = ( function() {
 			// regionOffset
 			var rO = { x: CanvasDO.eyesROI[index].x*sc,
 						y: CanvasDO.eyesROI[index].y*sc};
-			var i = 0;
-			// for each eye candidate...
-			for(i; i<iris.candidates.length; ++i){
-				console.log('ro:'+rO);
-				Logger.log( 'Drawing circle.r:' + parseInt(iris.candidates[i][2]*sc) +
-							'@ x,y[' + parseInt(iris.candidates[i][0]*sc) + 
-							',' + parseInt(iris.candidates[i][1]*sc) + ']' , 'canvas' );
-				ctx.beginPath();
-				ctx.arc(parseInt(iris.candidates[i][0]*sc+rO.x),
-						parseInt(iris.candidates[i][1]*sc+rO.y),
-						parseInt(iris.candidates[i][2]*sc),
-						0,Math.PI*2,false); // Outer circle
-				ctx.stroke();
-				//ctx.fill();
-			}
+			ctx.beginPath();
+			ctx.arc(parseInt(iris[0]*sc+rO.x),
+					parseInt(iris[1]*sc+rO.y),
+					parseInt(iris[2]*sc),
+					0,Math.PI*2,false); // Outer circle
+			ctx.stroke();
+			//ctx.fill();
 		}
-		
-		CanvasDO.irises.forEach(debugIris);
+		if ( CanvasDO.eyesROI.length > 0 )
+			CanvasDO.irises.forEach(debugIris);
 	};
+	
+	/**
+	 * handles the change of the colorpicker element, redraws the eye regions
+	 *
+	 * @param {event}	the change event fired by the colorpicker
+	 */
+	function handleColor(evt){
+		Logger.log('Color changed to '+evt.target.value);
+		clearCanvas();
+		drawImage();
+	}
 	
 	/* MAIN */
 	
@@ -249,7 +255,11 @@ var CSC1840 = ( function() {
 		// navigation - select image to process...
 		document.querySelector('nav').addEventListener('click',
 			CSC1840.handleNav);
-		
+
+		// color input - change iris color/redraw...
+		document.querySelector('#controller input').addEventListener('change',
+			CSC1840.handleColor, false);
+			
 		// window resize - redraw canvas...
 		//window.onresize = CSC1840.handleResize;
 		window.addEventListener( 'resize', CSC1840.handleResize, true);
@@ -268,6 +278,7 @@ var CSC1840 = ( function() {
 		drawRoi: drawRoi,
 		drawIris: drawIris,
 		drawImage: drawImage,
+		handleColor: handleColor,
 		onScreenImage: onScreenImage
 	};
 }());

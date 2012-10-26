@@ -5,7 +5,7 @@
  * Exposes very few methods, as the work is done by the "detector" class.
  *
  * @author daniel@bitbay.org
- * 
+ * @version
  */
 var fs = require('fs'),
 	path = require('path'),
@@ -35,50 +35,32 @@ var inputImage = {
  *
  * @param{string}	the url of the image to process
  */
-exports.opencv = function( src, channel ){
-//	if(fs.existsSync(path.join(__dirname, '/data/upload/woman.jpg'))){
-		console.log('reading image...');
-		console.log(channel);
-		pusher.trigger( channel, 'opencv-info', {msg:'Reading image from disk'});
+function init( data ){
+	var src = data.src,
+		channel = data.channel;
 
-		// read img
-		inputImage.src = src;
-		inputImage.mat = cv.imread(inputImage.src, 1);
-		
-		pusher.trigger( channel, 'opencv-info', {msg:'Reading image from disk'});
-		
-		var detector = new Detector();
-		var results = detector.getROI(inputImage.mat);
+	pusher.trigger( channel, 'opencv-info', {msg:'Reading image from disk'});
 
-		//debugResultsROI(results);
-		detector.getIris();
-//	}
+	// read image into opencv Matrix format
+	inputImage.src = src;
+	inputImage.mat = cv.imread(inputImage.src, 1);
+	
+	pusher.trigger( channel, 'opencv-info', {msg:'Image finished loading'});
+	
+	// instantiate the detector submodule
+	var detector = new Detector();
+	
+	// detect regions of interest (eyes for now)
+	var roi = detector.getROI(inputImage.mat);
+	process.send({roi:roi});
+	
+	// use the previously calculated ROIs to get iris center and radius
+	var iris = detector.getIris();
+	process.send({ iris:iris });
 };
 
-function debugResultsROI(ROI){
-	var result = inputImage.mat.clone();
-	var rect;
-	var i=0;
-	for (i; i < ROI.faces.length; ++i) {
-	  rect = ROI.faces[i];
-	  cv.rectangle(result, {
-		x: rect.x,
-		y: rect.y
-	  }, {
-		x: rect.x + rect.width,
-		y: rect.y + rect.height
-	  }, [255, 0, 0], 2);
-	};
-	for (i=0; i < ROI.eyes.length; ++i) {
-	  rect = ROI.eyes[i];
-	  cv.rectangle(result, {
-		x: rect.x,
-		y: rect.y
-	  }, {
-		x: rect.x + rect.width,
-		y: rect.y + rect.height
-	  }, [0, 255, 0], 2);
-	};
-
-	//cv.imwrite('/data/output/result.jpg', result);
-}
+// Message from parent process starts calculus
+process.on('message', function(msg) {
+	console.log("opencv recieved: " + msg);
+	init(msg);
+});

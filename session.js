@@ -24,7 +24,6 @@ var db = require('mongojs').connect(databaseUri, collections),
 	crypto = require('crypto'),
 	q = require('q'),
 	pusher = require('./pusher.js'),
-	opencvMain = require('./opencv.js'),
 	cp = require('child_process'),
 	path = require('path');
 
@@ -263,8 +262,9 @@ exports.opencv = function(req, res){
 	// now THIS is where the magic starts...
 	// non-blocking child processes!
 	pusher.trigger( channel, 'server-info', {msg:'Forking OpenCV...'});
-	var openCV_fork = cp.fork(__dirname + '/opencv_cp.js');
+	var openCV_fork = cp.fork(__dirname + '/opencv.js');
 	
+	// 'working' signal to the client untill child process is done
 	var clicker = setInterval(function(){
 		pusher.trigger( channel, 'server-info',	{msg:'Working...'});
 	},3500);
@@ -280,6 +280,11 @@ exports.opencv = function(req, res){
 			// make sure to kill [SIGTERM:15] the forked process after it is done
 			openCV_fork.disconnect();
 		};
+		if( m.error ){
+			clearInterval(clicker);
+			pusher.trigger( channel, 'opencv-info', {msg:m.error});
+			openCV_fork.disconnect();
+		}
 	});
 	
 	//start the heavy calculation in a child process
