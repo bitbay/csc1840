@@ -1,4 +1,4 @@
-#### Installation / deployment
+###Installation / deployment
 
 ## Setting up project folder
 
@@ -14,7 +14,7 @@ Unpack the submitted zip archive:
 or alternatively get source from git:
 	$ git clone https://github.com/bitbay/csc1840.git
 
-#### Heroku setup
+### Heroku setup
 
 ## Creating application
 
