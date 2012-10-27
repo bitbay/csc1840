@@ -423,7 +423,7 @@ var ViewManager = (function(){
 			var padding = getStyle( grandParent, 'padding');
 			padding = parseInt(padding);
 			var rect = { width:grandParent.clientWidth-padding*2,
-						 height: grandParent.clientHeight };
+						 height: grandParent.clientHeight-padding*2 };
 			var cT = ViewManager.correctedTransform(rect, img);
 			canvas.width = cT.width;
 			canvas.height = cT.height;
@@ -434,7 +434,7 @@ var ViewManager = (function(){
 							cT.width, cT.height);
 			ctx.restore();
 			
-			var calcTop = (grandParent.clientHeight-2*padding-canvas.height) * 0.5;
+			var calcTop = (grandParent.clientHeight-canvas.height) * 0.5 - padding;
 			var calcLeft = (canvas.width)*0.5;
 			canvas.parentNode.setAttribute('style', 'top:'+ calcTop +
 											'px; left:-'+ calcLeft +'px;');
@@ -515,10 +515,6 @@ var ViewManager = (function(){
 		    var i = 0;
 		    for(i; i<ViewManager.irises.length; ++i){
 				if ( ViewManager.irises[i].length < 1 ) return;
-				
-				//ctx.strokeStyle = '#000000';
-				//ctx.lineWidth = 0;
-				//var radgrad = ctx.createRadialGradient(x0, y0, r0, x1, y1, r1);
 				
 				// regionOffset
 				var rO = { 	x: ViewManager.eyesROI[i].x*sc,
