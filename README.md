@@ -14,16 +14,16 @@ Unpack the submitted zip archive:<br>
 or alternatively get source from git:<br>
 <code>$ git clone https://github.com/bitbay/csc1840.git</code>
 
-## Heroku setup
+# Heroku setup
 
-# Creating application
+## Creating application
 
 Create a new application with the heroku command-line client (or toolchain) using custom buildpack*:<br>
 <code>$ heroku create {app} --buildpack https://github.com/bitbay/heroku-buildpack-nodejs.git</code>
 
 * This buildpack based on the heroku-buildpack-nodejs and adds support for OpenCV 2.4.2 with <strong>codeboost</strong>'s <a href="https://github.com/codeboost/opencv-node">opencv-node</a>.
 It has the compiled libraries of openCV and the nesessary steps to unpack/monkey-patch/deploy it into the slug.
-To read the full story on how i created it wait for VULCAN.md...comming soon!
+To read the full story on how i created it wait for VULCAN.md...to be updated!
 
 # Installing add-ons needed by the application
 
@@ -50,7 +50,6 @@ The env vars needed by OpenCV 2.4.2 are set up by the buildpack at slug compile 
 
 Once created, push the git source to the heroku master branch:<br>
 <code>$ git push heroku master</code>
-
 
 # System architecture
 
