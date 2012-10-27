@@ -25,7 +25,7 @@ Create a new application with the heroku command-line client (or toolchain) usin
 It has the compiled libraries of openCV and the nesessary steps to unpack/monkey-patch/deploy it into the slug.
 To read the full story on how i created it wait for VULCAN.md...to be updated!
 
-# Installing add-ons needed by the application
+## Installing add-ons needed by the application
 
 The application uses <strong>mongodb</strong> for session-pesistent data
 
@@ -35,7 +35,7 @@ Add mongodb add-on (mongolab):<br>
 Add pusher to application for websocket support:<br>
 <code>$ heroku addons:add pusher:sandbox</code>
 
-# Configure environment variables
+## Configure environment variables
 
 Both mongolab and pusher set these variables for the user.<br>
 <code>MONGOLAB_URI</code>
