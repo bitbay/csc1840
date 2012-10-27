@@ -199,11 +199,10 @@ var Pusherpipe = (function(){
 		this.channel.bind('opencv-result', function(data){
 			if( data.roi ){
 				ViewManager.eyesROI = data.roi.eyes;
-				ViewManager.drawRoi();
+				//ViewManager.drawRoi();
 			}
 			if( data.iris ){
 				ViewManager.irises = data.iris;
-				//ViewManager.drawImage();
 				ViewManager.setState( 'EDITING_STATE' );
 			}
 		});
@@ -211,17 +210,14 @@ var Pusherpipe = (function(){
 		/* Pusher.com debug messages */
 		
 		this.pusher.connection.bind('connecting', function() {
-			//$('div#status').text('Connecting to Pusher...');
 			Logger.log('Connecting to Pusher...', 'pusher');
 		});
 
 		this.pusher.connection.bind('connected', function() {
-			//$('div#status').text('Connected to Pusher!');
 			Logger.log('Connected to Pusher!', 'pusher');
 		});
 
 		this.pusher.connection.bind('failed', function() {
-			//$('div#status').text('Connection to Pusher failed :(');
 			Logger.log('Connection to Pusher failed', 'pusher');
 		});
 		
@@ -412,6 +408,8 @@ var ViewManager = (function(){
 	 *
 	 * redraws the whole image to fit inside the -webkit-flex container, and let
 	 * it flow...
+	 *
+	 * @params {domelement} a target canvas where the fills happen
 	 */
 	var drawImage = function (canvas){
 		if( ViewManager.imageURL == '' ) return false;
@@ -424,21 +422,31 @@ var ViewManager = (function(){
 			padding = parseInt(padding);
 			var rect = { width:grandParent.clientWidth-padding*2,
 						 height: grandParent.clientHeight-padding*2 };
+						 
+			// calculates 'letterbox', fit into container sizes
 			var cT = ViewManager.correctedTransform(rect, img);
+			
+			// update canvas size
 			canvas.width = cT.width;
 			canvas.height = cT.height;
+			
 			var ctx = canvas.getContext('2d');
 			ctx.save();
+			
+			// draw the image
 			ctx.drawImage(	img,
 							0, 0,
 							cT.width, cT.height);
 			ctx.restore();
 			
+			// this patch is necessary to center the 'stage' div, with absolute
+			// positioned overlays inside...
 			var calcTop = (grandParent.clientHeight-canvas.height) * 0.5 - padding;
 			var calcLeft = (canvas.width)*0.5;
 			canvas.parentNode.setAttribute('style', 'top:'+ calcTop +
 											'px; left:-'+ calcLeft +'px;');
 		};
+		// kick-off the load (probably from cache by now)
 		img.src = ViewManager.imageURL;
 	};
 	
@@ -470,10 +478,13 @@ var ViewManager = (function(){
 		}
 		ctx.restore();		
 	};
+	
 	/**
 	 * drawMask
 	 *
-	 * draws in the middle layer the original image masked with the iris circles
+	 * draws the colored layer masked with the iris circles
+	 *
+	 * @params {domelement} a target canvas where the fills happen
 	 */
 	 var drawMask = function(canvas){
 	 	if( ViewManager.imageURL == '' ) return false;
@@ -519,7 +530,8 @@ var ViewManager = (function(){
 				// regionOffset
 				var rO = { 	x: ViewManager.eyesROI[i].x*sc,
 							y: ViewManager.eyesROI[i].y*sc };
-							
+				
+				// a not-so-hard circle border with gradients
 		    	var radgrad = ctx.createRadialGradient(
 		    		parseInt(ViewManager.irises[i][0]*sc+rO.x),
 		    		parseInt(ViewManager.irises[i][1]*sc+rO.y),
@@ -527,18 +539,22 @@ var ViewManager = (function(){
 		    		parseInt(ViewManager.irises[i][0]*sc+rO.x),
 		    		parseInt(ViewManager.irises[i][1]*sc+rO.y),
 		    		parseInt(ViewManager.irises[i][2]*sc));
+		    		
 		    	radgrad.addColorStop(0, 'rgba(0,0,0,1)');
 				radgrad.addColorStop(0.8, 'rgba(0,0,0,1)');
 				radgrad.addColorStop(0.95, 'rgba(0,0,0,0.9)');
 				radgrad.addColorStop(1, 'rgba(0,0,0,0)');
-				ctx.fillStyle = radgrad;
-				ctx.beginPath();
 				
+				ctx.fillStyle = radgrad;
+				
+				// draw the iris
+				ctx.beginPath();
 				ctx.arc(parseInt(ViewManager.irises[i][0]*sc+rO.x),
 						parseInt(ViewManager.irises[i][1]*sc+rO.y),
 						parseInt(ViewManager.irises[i][2]*sc),
 						0,Math.PI*2,false);
 				ctx.fill();
+				
 				ctx.closePath();
 			}
 			ctx.restore();
@@ -552,8 +568,9 @@ var ViewManager = (function(){
 	 *
 	 * INIT_STATE: startup. No images on the screen, just the nav icons.
 	 * LOADING_STATE: once the user clicks a thumbnail the application steps in
-	 * 	this state. Just the middle (colored) image is visible.
-	 * EDITING_STATE: the iris data is loaded, and the user can change the color
+	 * 	this state. Just the (colored) image is visible.
+	 * EDITING_STATE: the iris data is loaded, and the user can change the
+	 *	filters
 	 * 
 	 * @param {string} the state to switch to.
 	 */
@@ -582,7 +599,7 @@ var ViewManager = (function(){
 				this.state = 'EDITING_STATE';
 
 				// move the image to the filtered layer0
-				// draw the middle colored/masked layer
+				// draw the overlayed colored/masked layer
 				var canvas0 = document.querySelector('#layer0');
 				var canvas1 = document.querySelector('#layer1');
 		 		clearCanvas(canvas0);

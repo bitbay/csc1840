@@ -1,9 +1,18 @@
+/**
+ * Cloudspokes challenge #1840
+ * 
+ * Pusher class, wrapper for pusher.com services.
+ *
+ * @author daniel@bitbay.org
+ * @version
+ */
 var Pusher = require('node-pusher');
 
+// private api-key, these get set as environment variables in heroku by pusher
 var pusher = new Pusher({
-    appId: '30220',
-    key: '0869d75e9733f63ecf53',
-    secret: '64cc9a5241126714e3bb'
+    appId: process.env.PUSHER_APP_ID,
+    key: process.env.PUSHER_KEY,
+    secret: process.env.PUSHER_SECRET
 });
-console.log('pusherinstance created');
+
 module.exports = pusher;

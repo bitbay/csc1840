@@ -8,7 +8,8 @@
  *
  * Uses mongoDB as database and mongojs as driver.
  *
- * Uses node JS child_processes to make use of scalable, cloud-based applications 
+ * Uses node JS child_processes taking advantage of scalable, cloud-based
+ * services. 
  *
  * @author	daniel@bitbay.org
  * @version
@@ -98,6 +99,7 @@ exports.preroute = function(req, res, next){
  * Sets the response content to 200 OK || 401 Not authorized || 500 Server error
  */
 exports.auth = function (req, res) {
+	// prefix the channel as private
 	var channel = req.body.channel_name.replace('private-', '');
 	
 	// Authenticate using stored mongodb values...
@@ -190,9 +192,15 @@ var queryImages = function (channelId) {
  * and triggers event on pusher notifing
  */
 exports.fileupload = function(req, res){
+	// get the 'secret' channel
 	var visitor = req.get('X-Visitor');
 	var channel = 'private-'+visitor;
 	
+	// let the visitor know, the server is doing stuff...
+	pusher.trigger( channel, 'server-info',
+					{msg:'Upload started...'});
+	
+	// search for the visitor in the database - promise
 	var find = q.defer();
 	db.visitors.find({
 		sessionId : req.session.id
@@ -247,7 +255,6 @@ exports.fileupload = function(req, res){
  * works with the encountered ROIs through a series of filters to finally
  * extract the circle corresponding to the iris.
  *
- * ..first runs a basic sanity check.
  */
 exports.opencv = function(req, res){
 	var src = req.query.src;

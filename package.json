@@ -1,6 +1,6 @@
 {
 	"name": "csc-1840",
-	"version": "0.0.2",
+	"version": "0.9.0",
 	"author": "<daniel@bitbay.org>",
 	"description": "CloudSpokes Challange #1840",
 	"private": true,
@@ -15,8 +15,7 @@
 		"q": "0.8.8",
 		"ejs": "*",
 		"crypto": "*",
-		"node-pusher": "latest",
-		"pusher-server": "latest"
+		"node-pusher": "latest"
 	},
 	"engines": {
 		"node": "0.8.11",

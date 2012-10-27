@@ -4,8 +4,9 @@
  * Calculates features found in the Mat (image), and returns the coordinates of
  * them as an array.
  *
+ * @author daniel@bitbay.org
+ * @version
  */
-
 var fs = require('fs'),
 	path = require('path'),
 	q = require('q'),
@@ -398,8 +399,7 @@ module.exports = function(){
 				cv.imshow("DEBUG1", thresholdedImage);
 				cv.waitKey();
 			}
-//			var lO = otsuThreshold * 0.55;
-//			var hO = otsuThreshold * 1.65;
+			
 			var lO = otsuThreshold * (1-otsuDelta);
 			var hO = otsuThreshold * (1+otsuDelta);
 
@@ -488,6 +488,9 @@ module.exports = function(){
 			
 			console.log('circles found:'+circles.length);
 			process.send({info:('Hough found '+circles.length+' circle(s)')});
+			
+			// find the most probably iris like circle - the one more close to
+			// to the middle of the image...
 			if ( circles.length == 1 ){
 				result.push( circles[0] );
 			}else if( circles.length > 1 ){
@@ -496,7 +499,7 @@ module.exports = function(){
 				var imgCenterX = parseInt(eyeRegion.cols*0.5);
 				var imgCenter = { x: imgCenterX, y:imgCenterY };
 				var candidates = circles.slice(0, circles.length > 25 ? 25 : circles.length);
-				console.log(candidates);
+
 				var iris = { index: 0 };
 				var j = 0;
 				for( j; j < candidates.length; ++j){
@@ -504,15 +507,11 @@ module.exports = function(){
 					var cand = candidates[j];
 					var dist = this.lineDistance( imgCenter,
 						{ x:cand[0], y:cand[1] });
-					console.log('candidate '+j+' of '+candidates.length+' dist:'+dist);
-					
 					if( !iris.dist ){
 						iris.dist = dist;
-						console.log(j + ': ' + iris.dist);
 					}else if( iris.dist > dist ){
 						iris.index = j;
 						iris.dist = dist;
-						console.log(j + ': ' + iris.dist);
 					}
 				}
 				result.push( candidates[ iris.index ] );
